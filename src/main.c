@@ -24,9 +24,10 @@
 #include <string.h>
 
 #if defined(__WATCOMC__)
-#include <unistd.h>
+#	include <unistd.h>
+#	define stricmp strcasecmp
 #else
-#include <getopt.h>
+#	include <getopt.h>
 #endif
 
 #include "stunpack.h"
@@ -56,18 +57,18 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "g:p:hqv")) != -1) {
 		switch (opt) {
 			case 'g':
-				if (strcmp(optarg, "stunts10") == 0) {
+				if (strcasecmp(optarg, stpk_versionStr(STPK_VER_AUTO)) == 0) {
+					gameVersion = STPK_VER_AUTO;
+				}
+				else if (strcasecmp(optarg, stpk_versionStr(STPK_VER_STUNTS10)) == 0) {
 					gameVersion = STPK_VER_STUNTS10;
 				}
-				else if (strcmp(optarg, "stunts11") == 0) {
+				else if (strcasecmp(optarg, stpk_versionStr(STPK_VER_STUNTS11)) == 0) {
 					gameVersion = STPK_VER_STUNTS11;
-				}
-				else if (strcmp(optarg, "auto") == 0) {
-					gameVersion = STPK_VER_AUTO;
 				}
 				else {
 					fprintf(stderr, "Invalid game version \"%s\".\n", optarg);
-					retval = 1;
+					return 1;
 				}
 				break;
 			case 'p':
@@ -135,7 +136,11 @@ void printHelp(char *progName)
 	printf(BANNER);
 
 	printf(USAGE, progName);
-	printf("  -g VER   game version: \"auto\" (default), \"stunts10\", \"stunts11\")\n");
+	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\")\n",
+		stpk_versionStr(STPK_VER_AUTO),
+		stpk_versionStr(STPK_VER_STUNTS10),
+		stpk_versionStr(STPK_VER_STUNTS11)
+	);
 	printf("  -p NUM   limit to NUM decompression passes\n");
 	printf("  -v       verbose output\n");
 	printf("  -vv      very verbose output\n");

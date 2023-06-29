@@ -24,6 +24,10 @@
 #define STPK_NAME    "stunpack"
 #define STPK_BUGS    "daniel@stien.org"
 
+#define STPK_RET_OK            0
+#define STPK_RET_ERR           1
+#define STPK_RET_ERR_DATA_LEFT 2
+
 #define STPK_MAX_SIZE          0xFFFFFF
 #define STPK_PASSES_MASK       0x7F
 #define STPK_PASSES_RECUR      0x80
@@ -74,6 +78,7 @@ typedef struct {
 	stpk_DeallocCallback deallocCallback;
 } stpk_Context;
 
+const char *stpk_versionStr(stpk_Version version);
 stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback);
 void stpk_deinit(stpk_Context *ctx);
 uint stpk_decomp(stpk_Context *ctx);

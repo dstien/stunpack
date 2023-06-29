@@ -45,6 +45,20 @@ inline void stpk_dst2src(stpk_Context *ctx);
 char *stpk_stringBits16(ushort val);
 void stpk_printArray(const uchar *arr, uint len, const char *name);
 
+const char *stpk_versionStr(stpk_Version version)
+{
+	switch (version) {
+		case STPK_VER_AUTO:
+			return "auto";
+		case STPK_VER_STUNTS10:
+			return "stunts1.0";
+		case STPK_VER_STUNTS11:
+			return "stunts1.1";
+		default:
+			return "Unknown";
+	}
+}
+
 stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
 {
 	return (stpk_Context) {
@@ -105,11 +119,18 @@ int inline stpk_allocDst(stpk_Context *ctx)
 	return 0;
 }
 
+int inline stpk_isRle(stpk_Buffer *buf)
+{
+	return buf->data[0] == STPK_TYPE_RLE && buf->data[7] == 0;
+}
+
 // Decompress sub-files in source buffer.
 uint stpk_decomp(stpk_Context *ctx)
 {
 	uchar passes, type, i;
-	uint retval = 1, finalLen;
+	uint retval = 1, finalLen, srcOffset;
+
+	STPK_VERBOSE1("  %-10s %s\n", "version", stpk_versionStr(ctx->version));
 
 	passes = ctx->src.data[ctx->src.offset];
 	if (STPK_GET_FLAG(passes, STPK_PASSES_RECUR)) {
@@ -151,7 +172,34 @@ uint stpk_decomp(stpk_Context *ctx)
 				break;
 			case STPK_TYPE_HUFF:
 				STPK_VERBOSE1("  %-10s Huffman coding\n", "type");
+				srcOffset = ctx->src.offset;
 				retval = stpk_decompHuff(ctx);
+				// If selected version is "auto", check if we should retry with BB Stunts 1.0.
+				if (ctx->version == STPK_VER_AUTO
+					&& (
+						// Decompression failed.
+						retval == STPK_RET_ERR
+						// Decompression had source data left, but it is the last pass.
+						|| (retval == STPK_RET_ERR_DATA_LEFT && (i == (passes - 1)))
+						// There are more passes, but the next is not valid RLE.
+						|| ((i < (passes - 1)) && !stpk_isRle(&ctx->dst))
+					)
+				) {
+					STPK_WARN("Huffman decompression with Stunts 1.1 bit stream format failed, retrying with Stunts 1.0 format.\n");
+					ctx->version = STPK_VER_STUNTS10;
+					ctx->src.offset = srcOffset;
+					ctx->dst.offset = 0;
+					STPK_NOVERBOSE("Pass %d/%d: ", i + 1, passes);
+					retval = stpk_decompHuff(ctx);
+					ctx->version = STPK_VER_AUTO;
+				}
+
+				// Data left must be checked for BB Stunts 1.0 bit stream detection
+				// heuristics, but it is not an error. SDTITL.PVS in BB Stunts 1.1
+				// has 95 byte extra, which is random data that is ignored.
+				if (retval == STPK_RET_ERR_DATA_LEFT) {
+					retval = STPK_RET_OK;
+				}
 				break;
 			default:
 				STPK_ERR("Error parsing source file. Expected type 1 (run-length) or 2 (Huffman), got %02X\n", type);
@@ -514,7 +562,7 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 		if (curWidth > STPK_HUFF_PREFIX_WIDTH) {
 			if (curWidth != STPK_HUFF_WIDTH_ESC) {
 				STPK_ERR("Invalid escape value. curWidth != %02X, got %02X\n", STPK_HUFF_WIDTH_ESC, curWidth);
-				return 1;
+				return STPK_RET_ERR;
 			}
 
 			curByte = (curWord & 0x00FF);
@@ -536,7 +584,7 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 
 				if (level >= STPK_HUFF_LEVELS_MAX) {
 					STPK_ERR("Offset table out of bounds (%d >= %d)\n", level, STPK_HUFF_LEVELS_MAX);
-					return 1;
+					return STPK_RET_ERR;
 				}
 
 				if (curWord < totalCodes[level]) {
@@ -544,7 +592,7 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 
 					if (curWord > 0xFF) {
 						STPK_ERR("Alphabet index out of bounds (%04X > %04X)\n", curWord, STPK_HUFF_ALPH_LEN);
-						return 1;
+						return STPK_RET_ERR;
 					}
 
 					if (delta) {
@@ -597,7 +645,7 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 
 		if ((ctx->src.offset - 1) > ctx->src.len && ctx->dst.offset < ctx->dst.len) {
 			STPK_ERR("Reached unexpected end of source buffer while decoding Huffman codes\n");
-			return 1;
+			return STPK_RET_ERR;
 		}
 
 		// Progress bar.
@@ -611,9 +659,10 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 
 	if (ctx->src.offset < ctx->src.len) {
 		STPK_WARN("Huffman decoding finished with unprocessed data left in source buffer (%d bytes left)\n", ctx->src.len - ctx->src.offset);
+		return STPK_RET_ERR_DATA_LEFT;
 	}
 
-	return 0;
+	return STPK_RET_OK;
 }
 
 // Read a byte from the Huffman code bit stream, reverse bits if game version is Brøderbund Stunts 1.0.
