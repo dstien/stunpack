@@ -1,6 +1,6 @@
 /*
  * stunpack - Stunts/4D [Sports] Driving game resource unpacker
- * Copyright (C) 2008 Daniel Stien <daniel@stien.org>
+ * Copyright (C) 2008-2023 Daniel Stien <daniel@stien.org>
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
