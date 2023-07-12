@@ -1,6 +1,6 @@
 # stunpack
 
-[![CICD](https://img.shields.io/github/actions/workflow/status/dstien/stunpack/cicd.yml)](https://github.com/dstien/stunpack/actions/workflows/ci.yml)
+[![CICD](https://img.shields.io/github/actions/workflow/status/dstien/stunpack/ci.yml)](https://github.com/dstien/stunpack/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/dstien/stunpack)](https://github.com/dstien/stunpack/releases)
 
 **Stunts/4D [Sports] Driving game resource unpacker**
