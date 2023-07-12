@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
+
+jobs:
+  build-test:
+    name: Build and release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [
+          { name: 'linux-gnu-x86_64',                                   release: false },
+          { name: 'linux-musl-i386',   zigtarget: 'x86-linux-musl',     release: true  },
+          { name: 'linux-musl-x86_64', zigtarget: 'x86_64-linux-musl',  release: true  },
+          { name: 'win32-i386',        zigtarget: 'x86-windows-gnu',    release: true  },
+          { name: 'win64-x86_64',      zigtarget: 'x86_64-windows-gnu', release: true  },
+          { name: 'msdos-i386',                                         release: true  }
+        ]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Metadata
+        run: |
+          if [[ "${{ matrix.platform.name }}" == win* ]] || [[ "${{ matrix.platform.name }}" == msdos* ]]; then
+            EXESUFFIX=.exe
+            PKG_TYPE=zip
+          else
+            EXESUFFIX=
+            PKG_TYPE=tar.gz
+          fi
+
+          PROJ_NAME=$(grep '#define STPK_NAME' src/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
+          PROJ_VERSION=$(grep '#define STPK_VERSION' src/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
+          RELEASE_TITLE="${PROJ_NAME} ${PROJ_VERSION}"
+          RELEASE_NAME="${PROJ_NAME}-${PROJ_VERSION}"
+          RELEASE_ROOT=release
+          ARTIFACT_NAME="${RELEASE_NAME}-${{ matrix.platform.name }}"
+          ARTIFACT_DIR="${RELEASE_ROOT}/${ARTIFACT_NAME}"
+          ARTIFACT_PKG="${ARTIFACT_NAME}.${PKG_TYPE}"
+
+          echo "PROJ_NAME=${PROJ_NAME}"          >> $GITHUB_ENV
+          echo "PROJ_VERSION=${PROJ_VERSION}"    >> $GITHUB_ENV
+          echo "PROJ_AUTHOR=${PROJ_AUTHOR}"      >> $GITHUB_ENV
+          echo "RELEASE_TITLE=${RELEASE_TITLE}"  >> $GITHUB_ENV
+          echo "RELEASE_NAME=${RELEASE_NAME}"    >> $GITHUB_ENV
+          echo "RELEASE_ROOT=${RELEASE_ROOT}"    >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}"  >> $GITHUB_ENV
+          echo "ARTIFACT_DIR=${ARTIFACT_DIR}"    >> $GITHUB_ENV
+          echo "ARTIFACT_PKG=${ARTIFACT_PKG}"    >> $GITHUB_ENV
+          echo "EXESUFFIX=${EXESUFFIX}"          >> $GITHUB_ENV
+          echo "PKG_TYPE=${PKG_TYPE}"            >> $GITHUB_ENV
+          echo "BUILDDIR=build"                  >> $GITHUB_ENV
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        if: matrix.platform.zigtarget
+
+      - name: Setup Open Watcom
+        uses: open-watcom/setup-watcom@v0
+        if: startsWith(matrix.platform.name, 'msdos')
+
+      - name: Setup tool chain
+        run: |
+          sudo apt install -y build-essential
+
+          case ${{ matrix.platform.name }} in
+            msdos*)
+              echo CC=wcl386 >> $GITHUB_ENV
+              echo "INCLUDE=$WATCOM/h" >> $GITHUB_ENV
+              echo "LIB=$WATCOM/lib386" >> $GITHUB_ENV
+              echo "PATH=$WATCOM/binl:$WATCOM/binw:$PATH" >> $GITHUB_ENV
+              ;;
+            linux-gnu-x86_64)
+              echo CC=gcc >> $GITHUB_ENV
+              echo STRIP=strip >> $GITHUB_ENV
+              ;;
+            *)
+              if [ ! -n "${{ matrix.platform.zigtarget }}" ]; then
+                echo "Unhandled platform: ${{ matrix.platform.name }}"
+                exit 1
+              fi
+
+              # Use zig cc for remaining platforms.
+              echo CC="zig cc -target ${{ matrix.platform.zigtarget }}" >> $GITHUB_ENV
+              echo LDFLAGS="-Wl,-static,--strip-all" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Build
+        run: |
+          make
+          if [ -n "${STRIP}" ]; then
+            ${STRIP} "${BUILDDIR}/src/${PROJ_NAME}${EXESUFFIX}"
+          fi
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p "${ARTIFACT_DIR}"
+          cp "${BUILDDIR}/src/${PROJ_NAME}${EXESUFFIX}" "${ARTIFACT_DIR}/"
+          cp README.md "${ARTIFACT_DIR}/"
+
+          # Uppercase filename styling for MS-DOS.
+          if [[ "${{ matrix.platform.name }}" == msdos* ]]; then
+            pushd "${ARTIFACT_DIR}" > /dev/null
+            for file in *.exe; do
+              mv "${file}" "${file^^}"
+            done
+            popd > /dev/null
+          fi
+
+      # Publish directory as artifact because GitHub will zip anything on the fly anyway.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          # Use wildcard before the "/" to ensure that the directory itself is also included, not just the contents.
+          path: "${{ env.ARTIFACT_DIR }}*/"
+
+      # Only create custom packages for releases, where we fully control the archiving process.
+      - name: Create release package
+        if: matrix.platform.release && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pushd "${RELEASE_ROOT}" > /dev/null
+          case ${PKG_TYPE} in
+            tar.gz) tar -czf "${ARTIFACT_PKG}" "${ARTIFACT_NAME}" ;;
+            zip) 7z -y a "${ARTIFACT_PKG}" "${ARTIFACT_NAME}" ;;
+          esac
+          popd > /dev/null
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: matrix.platform.release && startsWith(github.ref, 'refs/tags/v')
+        with:
+          token: ${{ secrets.CREATE_RELEASE }}
+          name: ${{ env.RELEASE_TITLE }}
+          files: "${{ env.RELEASE_ROOT}}/${{ env.ARTIFACT_PKG }}"
+
+      - name: Test executable type
+        run: file ${{ env.BUILDDIR }}/src/${PROJ_NAME}${{ env.EXESUFFIX }}
