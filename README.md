@@ -1,5 +1,8 @@
 # stunpack
 
+[![CICD](https://img.shields.io/github/actions/workflow/status/dstien/stunpack/cicd.yml)](https://github.com/dstien/stunpack/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/dstien/stunpack)](https://github.com/dstien/stunpack/releases)
+
 **Stunts/4D [Sports] Driving game resource unpacker**
 
 This program decodes packed resources and code files used by the PC version of the game "Stunts" (Brøderbund), also published as "4D Sports Driving" (Mindscape) and "4D Driving" (Electronic Arts).
