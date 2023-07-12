@@ -61,24 +61,19 @@ const char *stpk_versionStr(stpk_Version version)
 
 stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
 {
-	return (stpk_Context) {
-		.src = (stpk_Buffer) {
-			.data   = NULL,
-			.offset = 0,
-			.len    = 0
-		},
-		.dst = (stpk_Buffer) {
-			.data   = NULL,
-			.offset = 0,
-			.len    = 0
-		},
-		.version = version,
-		.maxPasses = maxPasses,
-		.verbosity = verbosity,
-		.logCallback = logCallback,
-		.allocCallback = allocCallback,
-		.deallocCallback = deallocCallback
-	};
+	stpk_Buffer empty = { NULL, 0, 0 };
+
+	stpk_Context ctx;
+	ctx.src = empty;
+	ctx.dst = empty;
+	ctx.version = version;
+	ctx.maxPasses = maxPasses;
+	ctx.verbosity = verbosity;
+	ctx.logCallback = logCallback;
+	ctx.allocCallback = allocCallback;
+	ctx.deallocCallback = deallocCallback;
+
+	return ctx;
 }
 
 void stpk_deinit(stpk_Context *ctx)
