@@ -51,10 +51,6 @@
 #define STPK_HUFF_PREFIX_MSB   (1 << (STPK_HUFF_PREFIX_WIDTH - 1))
 #define STPK_HUFF_WIDTH_ESC    0x40
 
-typedef unsigned char  uchar;
-typedef unsigned short ushort;
-typedef unsigned int   uint;
-
 typedef enum { STPK_VER_AUTO, STPK_VER_STUNTS10, STPK_VER_STUNTS11 } stpk_Version;
 typedef enum { STPK_LOG_INFO, STPK_LOG_WARN, STPK_LOG_ERR } stpk_LogType;
 typedef void (*stpk_LogCallback)(stpk_LogType type, const char *msg, ...);
@@ -62,9 +58,9 @@ typedef void* (*stpk_AllocCallback)(size_t size);
 typedef void (*stpk_DeallocCallback)(void *ptr);
 
 typedef struct {
-	uchar *data;
-	uint  offset;
-	uint  len;
+	unsigned char *data;
+	unsigned int  offset;
+	unsigned int  len;
 } stpk_Buffer;
 
 typedef struct {
@@ -81,15 +77,15 @@ typedef struct {
 const char *stpk_versionStr(stpk_Version version);
 stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback);
 void stpk_deinit(stpk_Context *ctx);
-uint stpk_decomp(stpk_Context *ctx);
+unsigned int stpk_decomp(stpk_Context *ctx);
 
-uint stpk_decompRLE(stpk_Context *ctx);
-uint stpk_rleDecodeSeq(stpk_Context *ctx, uchar esc);
-uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup);
+unsigned int stpk_decompRLE(stpk_Context *ctx);
+unsigned int stpk_rleDecodeSeq(stpk_Context *ctx, unsigned char esc);
+unsigned int stpk_rleDecodeOne(stpk_Context *ctx, const unsigned char *escLookup);
 
-uint stpk_decompHuff(stpk_Context *ctx);
-uint stpk_huffGenOffsets(stpk_Context *ctx, uint levels, const uchar *leafNodesPerLevel, short *codeOffsets, ushort *totalCodes);
-void stpk_huffGenPrefix(stpk_Context *ctx, uint levels, const uchar *leafNodesPerLevel, const uchar *alphabet, uchar *symbols, uchar *widths);
-uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symbols, const uchar *widths, const short *codeOffsets, const ushort *totalCodes, int delta);
+unsigned int stpk_decompHuff(stpk_Context *ctx);
+unsigned int stpk_huffGenOffsets(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, short *codeOffsets, unsigned short *totalCodes);
+void stpk_huffGenPrefix(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, const unsigned char *alphabet, unsigned char *symbols, unsigned char *widths);
+unsigned int stpk_huffDecode(stpk_Context *ctx, const unsigned char *alphabet, const unsigned char *symbols, const unsigned char *widths, const short *codeOffsets, const unsigned short *totalCodes, int delta);
 
 #endif

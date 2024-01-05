@@ -175,7 +175,7 @@ void logCallback(stpk_LogType type, const char *msg, ...)
 
 int decompress(char *srcFileName, char *dstFileName, stpk_Version version, int passes, int verbose)
 {
-	uint retval = 1;
+	unsigned int retval = 1;
 	FILE *srcFile, *dstFile;
 
 	stpk_Context ctx = stpk_init(version, passes, verbose, logCallback, malloc, free);
@@ -207,12 +207,12 @@ int decompress(char *srcFileName, char *dstFileName, stpk_Version version, int p
 		goto closeSrcFile;
 	}
 
-	if ((ctx.src.data = (uchar*)malloc(sizeof(uchar) * ctx.src.len)) == NULL) {
+	if ((ctx.src.data = (unsigned char*)malloc(sizeof(unsigned char) * ctx.src.len)) == NULL) {
 		ERR("Error allocating memory for source file \"%s\" content. (%s)\n", srcFileName, strerror(errno));
 		goto closeSrcFile;
 	}
 
-	if (fread(ctx.src.data, sizeof(uchar), ctx.src.len, srcFile) != ctx.src.len) {
+	if (fread(ctx.src.data, sizeof(unsigned char), ctx.src.len, srcFile) != ctx.src.len) {
 		ERR("Error reading source file \"%s\" content. (%s)\n", srcFileName, strerror(errno));
 		goto freeBuffers;
 	}

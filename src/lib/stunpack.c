@@ -38,12 +38,12 @@
 #define STPK_GET_FLAG(data, mask) ((data & mask) == mask)
 #define STPK_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
-inline uint stpk_rleCopyByte(stpk_Context *ctx, uchar cur, uint rep);
-inline uchar stpk_getHuffByte(stpk_Context *ctx);
-inline void stpk_getLength(stpk_Buffer *buf, uint *len);
+inline unsigned int stpk_rleCopyByte(stpk_Context *ctx, unsigned char cur, unsigned int rep);
+inline unsigned char stpk_getHuffByte(stpk_Context *ctx);
+inline void stpk_getLength(stpk_Buffer *buf, unsigned int *len);
 inline void stpk_dst2src(stpk_Context *ctx);
-char *stpk_stringBits16(ushort val);
-void stpk_printArray(const stpk_Context *ctx, const uchar *arr, uint len, const char *name);
+char *stpk_stringBits16(unsigned short val);
+void stpk_printArray(const stpk_Context *ctx, const unsigned char *arr, unsigned int len, const char *name);
 
 const char *stpk_versionStr(stpk_Version version)
 {
@@ -112,7 +112,7 @@ void inline stpk_dst2src(stpk_Context *ctx)
 
 int inline stpk_allocDst(stpk_Context *ctx)
 {
-	if ((ctx->dst.data = (uchar*)ctx->allocCallback(sizeof(uchar) * ctx->dst.len)) == NULL) {
+	if ((ctx->dst.data = (unsigned char*)ctx->allocCallback(sizeof(unsigned char) * ctx->dst.len)) == NULL) {
 		STPK_ERR("Error allocating memory for destination buffer. (%s)\n", strerror(errno));
 		return 1;
 	}
@@ -125,10 +125,10 @@ int inline stpk_isRle(stpk_Buffer *buf)
 }
 
 // Decompress sub-files in source buffer.
-uint stpk_decomp(stpk_Context *ctx)
+unsigned int stpk_decomp(stpk_Context *ctx)
 {
-	uchar passes, type, i;
-	uint retval = 1, finalLen, srcOffset;
+	unsigned char passes, type, i;
+	unsigned int retval = 1, finalLen, srcOffset;
 
 	STPK_VERBOSE1("  %-10s %s\n", "version", stpk_versionStr(ctx->version));
 
@@ -225,10 +225,10 @@ uint stpk_decomp(stpk_Context *ctx)
 }
 
 // Decompress run-length encoded sub-file.
-uint stpk_decompRLE(stpk_Context *ctx)
+unsigned int stpk_decompRLE(stpk_Context *ctx)
 {
-	uint srcLen, dstLen, i;
-	uchar unk, escLen, esc[STPK_RLE_ESCLEN_MAX], escLookup[STPK_RLE_ESCLOOKUP_LEN];
+	unsigned int srcLen, dstLen, i;
+	unsigned char unk, escLen, esc[STPK_RLE_ESCLEN_MAX], escLookup[STPK_RLE_ESCLOOKUP_LEN];
 
 	stpk_getLength(&ctx->src, &srcLen);
 	STPK_VERBOSE1("  %-10s %d\n", "srcLen", srcLen);
@@ -286,10 +286,10 @@ uint stpk_decompRLE(stpk_Context *ctx)
 }
 
 // Decode sequence runs.
-uint stpk_rleDecodeSeq(stpk_Context *ctx, uchar esc)
+unsigned int stpk_rleDecodeSeq(stpk_Context *ctx, unsigned char esc)
 {
-	uchar cur;
-	uint progress = 0, seqOffset, rep, i;
+	unsigned char cur;
+	unsigned int progress = 0, seqOffset, rep, i;
 
 	STPK_NOVERBOSE("[");
 
@@ -351,10 +351,10 @@ uint stpk_rleDecodeSeq(stpk_Context *ctx, uchar esc)
 }
 
 // Decode single-byte runs.
-uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
+unsigned int stpk_rleDecodeOne(stpk_Context *ctx, const unsigned char *escLookup)
 {
-	uchar cur;
-	uint progress = 0, rep;
+	unsigned char cur;
+	unsigned int progress = 0, rep;
 
 	STPK_NOVERBOSE("[");
 
@@ -431,7 +431,7 @@ uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
 	return 0;
 }
 
-inline uint stpk_rleCopyByte(stpk_Context *ctx, uchar cur, uint rep)
+inline unsigned int stpk_rleCopyByte(stpk_Context *ctx, unsigned char cur, unsigned int rep)
 {
 	STPK_VERBOSE2("%6d %6d    %02X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
 
@@ -448,12 +448,12 @@ inline uint stpk_rleCopyByte(stpk_Context *ctx, uchar cur, uint rep)
 }
 
 // Decompress Huffman coded sub-file.
-uint stpk_decompHuff(stpk_Context *ctx)
+unsigned int stpk_decompHuff(stpk_Context *ctx)
 {
-	uchar levels, leafNodesPerLevel[STPK_HUFF_LEVELS_MAX], alphabet[STPK_HUFF_ALPH_LEN], symbols[STPK_HUFF_PREFIX_LEN], widths[STPK_HUFF_PREFIX_LEN];
+	unsigned char levels, leafNodesPerLevel[STPK_HUFF_LEVELS_MAX], alphabet[STPK_HUFF_ALPH_LEN], symbols[STPK_HUFF_PREFIX_LEN], widths[STPK_HUFF_PREFIX_LEN];
 	short codeOffsets[STPK_HUFF_LEVELS_MAX];
-	ushort totalCodes[STPK_HUFF_LEVELS_MAX];
-	uint i, alphLen;
+	unsigned short totalCodes[STPK_HUFF_LEVELS_MAX];
+	unsigned int i, alphLen;
 	int delta;
 
 	levels = ctx->src.data[ctx->src.offset++];
@@ -494,9 +494,9 @@ uint stpk_decompHuff(stpk_Context *ctx)
 }
 
 // Generate offset table for translating Huffman codes wider than 8 bits to alphabet indices.
-uint stpk_huffGenOffsets(stpk_Context *ctx, uint levels, const uchar *leafNodesPerLevel, short *codeOffsets, ushort *totalCodes)
+unsigned int stpk_huffGenOffsets(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, short *codeOffsets, unsigned short *totalCodes)
 {
-	uint level, codes = 0, alphLen = 0;
+	unsigned int level, codes = 0, alphLen = 0;
 
 	for (level = 0; level < levels; level++) {
 		codes *= 2;
@@ -515,10 +515,10 @@ uint stpk_huffGenOffsets(stpk_Context *ctx, uint levels, const uchar *leafNodesP
 }
 
 // Generate prefix table for direct lookup of Huffman codes up to 8 bits wide.
-void stpk_huffGenPrefix(stpk_Context *ctx, uint levels, const uchar *leafNodesPerLevel, const uchar *alphabet, uchar *symbols, uchar *widths)
+void stpk_huffGenPrefix(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, const unsigned char *alphabet, unsigned char *symbols, unsigned char *widths)
 {
-	uint prefix, alphabetIndex, width = 1, maxWidth = STPK_MIN(levels, STPK_HUFF_PREFIX_WIDTH);
-	uchar leafNodes, totalNodes = STPK_HUFF_PREFIX_MSB, remainingNodes;
+	unsigned int prefix, alphabetIndex, width = 1, maxWidth = STPK_MIN(levels, STPK_HUFF_PREFIX_WIDTH);
+	unsigned char leafNodes, totalNodes = STPK_HUFF_PREFIX_MSB, remainingNodes;
 
 	// Fill all prefixes with data from last leaf node.
 	for (prefix = 0, alphabetIndex = 0; width <= maxWidth; width++, totalNodes >>= 1) {
@@ -537,11 +537,11 @@ void stpk_huffGenPrefix(stpk_Context *ctx, uint levels, const uchar *leafNodesPe
 }
 
 // Decode Huffman codes.
-uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symbols, const uchar *widths, const short *codeOffsets, const ushort *totalCodes, int delta)
+unsigned int stpk_huffDecode(stpk_Context *ctx, const unsigned char *alphabet, const unsigned char *symbols, const unsigned char *widths, const short *codeOffsets, const unsigned short *totalCodes, int delta)
 {
-	uchar readWidth = 8, curWidth = 0, curByte, code, level, curOut = 0;
-	ushort curWord = 0;
-	uint progress = 0;
+	unsigned char readWidth = 8, curWidth = 0, curByte, code, level, curOut = 0;
+	unsigned short curWord = 0;
+	unsigned int progress = 0;
 
 	curWord = (stpk_getHuffByte(ctx) << 8) | stpk_getHuffByte(ctx);
 
@@ -666,17 +666,17 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 }
 
 // Read a byte from the Huffman code bit stream, reverse bits if game version is Brøderbund Stunts 1.0.
-inline uchar stpk_getHuffByte(stpk_Context *ctx)
+inline unsigned char stpk_getHuffByte(stpk_Context *ctx)
 {
 	// https://graphics.stanford.edu/~seander/bithacks.html#BitReverseTable
-	static const uchar reverseBits[] = {
+	static const unsigned char reverseBits[] = {
 #		define R2(n)   (n),   (n + 2 * 64),   (n + 1 * 64),   (n + 3 * 64)
 #		define R4(n) R2(n), R2(n + 2 * 16), R2(n + 1 * 16), R2(n + 3 * 16)
 #		define R6(n) R4(n), R4(n + 2 *  4), R4(n + 1 *  4), R4(n + 3 *  4)
 		R6(0), R6(2), R6(1), R6(3)
 	};
 
-	uchar byte = ctx->src.data[ctx->src.offset++];
+	unsigned char byte = ctx->src.data[ctx->src.offset++];
 	if (ctx->version == STPK_VER_STUNTS10) {
 		byte = reverseBits[byte];
 	}
@@ -684,7 +684,7 @@ inline uchar stpk_getHuffByte(stpk_Context *ctx)
 }
 
 // Read file length: WORD remainder + BYTE multiplier * 0x10000.
-inline void stpk_getLength(stpk_Buffer *buf, uint *len)
+inline void stpk_getLength(stpk_Buffer *buf, unsigned int *len)
 {
 	*len =  buf->data[buf->offset] | buf->data[buf->offset + 1] << 8; // Read remainder.
 	*len += 0x10000 * buf->data[buf->offset + 2]; // Add multiplier.
@@ -692,7 +692,7 @@ inline void stpk_getLength(stpk_Buffer *buf, uint *len)
 }
 
 // Write bit values as string to stpk_b16. Used in verbose output.
-char *stpk_stringBits16(ushort val)
+char *stpk_stringBits16(unsigned short val)
 {
 	static char stpk_b16[16 + 1];
 	int i;
@@ -703,9 +703,9 @@ char *stpk_stringBits16(ushort val)
 }
 
 // Print formatted array. Used in verbose output.
-void stpk_printArray(const stpk_Context *ctx, const uchar *arr, uint len, const char *name)
+void stpk_printArray(const stpk_Context *ctx, const unsigned char *arr, unsigned int len, const char *name)
 {
-	uint i = 0;
+	unsigned int i = 0;
 
 	ctx->logCallback(STPK_LOG_INFO, "  %s[%02X]\n", name, len);
 	ctx->logCallback(STPK_LOG_INFO, "    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
