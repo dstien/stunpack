@@ -18,7 +18,6 @@
  */
 
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,7 +30,7 @@
 #define STPK_NOVERBOSE(msg, ...) STPK_LOG(ctx->verbosity == 1, STPK_LOG_INFO, (msg), ## __VA_ARGS__)
 #define STPK_VERBOSE1(msg, ...)  STPK_LOG(ctx->verbosity >  1, STPK_LOG_INFO, (msg), ## __VA_ARGS__)
 #define STPK_VERBOSE2(msg, ...)  STPK_LOG(ctx->verbosity >  2, STPK_LOG_INFO, (msg), ## __VA_ARGS__)
-#define STPK_VERBOSE_ARR(arr, len, name) if (ctx->verbosity > 1) stpk_printArray(arr, len, name)
+#define STPK_VERBOSE_ARR(arr, len, name) if (ctx->verbosity > 1) stpk_printArray(ctx, arr, len, name)
 #define STPK_VERBOSE_HUFF(msg, ...) STPK_VERBOSE2("%6d %6d %2d %2d %04X %s %02X -> " msg "\n", \
 					ctx->src.offset, ctx->dst.offset, readWidth, curWidth, curWord, \
 					stpk_stringBits16(curWord), code, ## __VA_ARGS__)
@@ -44,7 +43,7 @@ inline uchar stpk_getHuffByte(stpk_Context *ctx);
 inline void stpk_getLength(stpk_Buffer *buf, uint *len);
 inline void stpk_dst2src(stpk_Context *ctx);
 char *stpk_stringBits16(ushort val);
-void stpk_printArray(const uchar *arr, uint len, const char *name);
+void stpk_printArray(const stpk_Context *ctx, const uchar *arr, uint len, const char *name);
 
 const char *stpk_versionStr(stpk_Version version)
 {
@@ -341,7 +340,7 @@ uint stpk_rleDecodeSeq(stpk_Context *ctx, uchar esc)
 
 		// Progress bar.
 		if (ctx->verbosity && (ctx->verbosity < 3) && ((ctx->src.offset * 100) / ctx->src.len) >= (progress * 25)) {
-			printf("%4d%%", progress++ * 25);
+			ctx->logCallback(STPK_LOG_INFO, "%4d%%", progress++ * 25);
 		}
 	}
 
@@ -418,7 +417,7 @@ uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
 
 		// Progress bar.
 		if (ctx->verbosity && (ctx->verbosity < 3) && ((ctx->src.offset * 100) / ctx->src.len) >= (progress * 25)) {
-			printf("%4d%%", progress++ * 25);
+			ctx->logCallback(STPK_LOG_INFO, "%4d%%", progress++ * 25);
 		}
 	}
 
@@ -651,7 +650,7 @@ uint stpk_huffDecode(stpk_Context *ctx, const uchar *alphabet, const uchar *symb
 
 		// Progress bar.
 		if (ctx->verbosity && (ctx->verbosity < 3) && ((ctx->dst.offset * 100) / ctx->dst.len) >= (progress * 10)) {
-			printf("%4d%%", progress++ * 10);
+			ctx->logCallback(STPK_LOG_INFO, "%4d%%", progress++ * 10);
 		}
 	}
 
@@ -704,20 +703,20 @@ char *stpk_stringBits16(ushort val)
 }
 
 // Print formatted array. Used in verbose output.
-void stpk_printArray(const uchar *arr, uint len, const char *name)
+void stpk_printArray(const stpk_Context *ctx, const uchar *arr, uint len, const char *name)
 {
 	uint i = 0;
 
-	printf("  %s[%02X]\n", name, len);
-	printf("    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+	ctx->logCallback(STPK_LOG_INFO, "  %s[%02X]\n", name, len);
+	ctx->logCallback(STPK_LOG_INFO, "    0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
 
 	while (i < len) {
-		if ((i % 0x10) == 0) printf(" %2X", i / 0x10);
-		printf(" %02X", arr[i++]);
-		if ((i % 0x10) == 0) printf("\n");
+		if ((i % 0x10) == 0) ctx->logCallback(STPK_LOG_INFO, " %2X", i / 0x10);
+		ctx->logCallback(STPK_LOG_INFO, " %02X", arr[i++]);
+		if ((i % 0x10) == 0) ctx->logCallback(STPK_LOG_INFO, "\n");
 	}
 
-	if ((i % 0x10) != 0) printf("\n");
-	printf("\n");
+	if ((i % 0x10) != 0) ctx->logCallback(STPK_LOG_INFO, "\n");
+	ctx->logCallback(STPK_LOG_INFO, "\n");
 }
 
