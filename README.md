@@ -24,7 +24,7 @@ For a full list of options run `stunpack -h`.
 The project can be compiled with the GNU toolchain by running `make`. Building for other targets can be achieved by setting a compiler/linker in the `CC` environment variable:
 * Win32 with MinGW: `CC=i686-w64-mingw32-gcc make`
 * Win64 with MinGW: `CC=x86_64-w64-mingw32-gcc make`
-* MS DOS with Open Watcom: `CC=wcl386 INCLUDE=$WATCOM/h LIB=$WATCOM/lib386 PATH=$WATCOM/binl:$WATCOM/binw:$PATH make`
+* MS DOS with Open Watcom: `CC=wcl386 AR=wlink INCLUDE=$WATCOM/h LIB=$WATCOM/lib386 PATH=$WATCOM/binl:$WATCOM/binw:$PATH make`
 * Any target exposed by Zig's Clang interface: `CC="zig cc -target riscv64-linux-musl" make`
 
 Variables that affects the build process:
@@ -34,6 +34,10 @@ Variables that affects the build process:
 * `BUILDDIR`: Place output files in external directory
 * `EXESUFFIX`: Defaults to `.exe` if a Windows or DOS compiler is detected
 * `INSTALLDIR`: Defaults to `/usr/local/bin` for `make install`
+
+## Library
+
+The code for handling the compression formats is separated from the command line utility in a static library located in `src/lib`. The header file is `include/stunpack.h`.
 
 ## Additional documentation
 
