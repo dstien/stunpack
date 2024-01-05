@@ -39,6 +39,7 @@
 #define STPK_GET_FLAG(data, mask) ((data & mask) == mask)
 #define STPK_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
+inline uint stpk_rleCopyByte(stpk_Context *ctx, uchar cur, uint rep);
 inline uchar stpk_getHuffByte(stpk_Context *ctx);
 inline void stpk_getLength(stpk_Buffer *buf, uint *len);
 inline void stpk_dst2src(stpk_Context *ctx);
@@ -373,16 +374,11 @@ uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
 					rep = ctx->src.data[ctx->src.offset];
 					cur = ctx->src.data[ctx->src.offset + 1];
 					ctx->src.offset += 2;
-					STPK_VERBOSE2("%6d %6d    %02X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
 
-					while (rep--) {
-						if (ctx->dst.offset >= ctx->dst.len) {
-							STPK_ERR("Reached end of temporary buffer while writing byte run\n");
-							return 1;
-						}
-
-						ctx->dst.data[ctx->dst.offset++] = cur;
+					if (stpk_rleCopyByte(ctx, cur, rep)) {
+						return 1;
 					}
+
 					break;
 
 				// Type 2: Used for sequences. Serves no purpose here, but
@@ -393,31 +389,20 @@ uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
 					rep = ctx->src.data[ctx->src.offset] | ctx->src.data[ctx->src.offset + 1] << 8;
 					cur = ctx->src.data[ctx->src.offset + 2];
 					ctx->src.offset += 3;
-					STPK_VERBOSE2("%6d %6d  %04X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
 
-					while (rep--) {
-						if (ctx->dst.offset >= ctx->dst.len) {
-							STPK_ERR("Reached end of temporary buffer while writing byte run\n");
-							return 1;
-						}
-
-						ctx->dst.data[ctx->dst.offset++] = cur;
+					if (stpk_rleCopyByte(ctx, cur, rep)) {
+						return 1;
 					}
+
 					break;
 
 				// Type n: n repetitions
 				default:
 					rep = escLookup[cur] - 1;
 					cur = ctx->src.data[ctx->src.offset++];
-					STPK_VERBOSE2("%6d %6d    %02X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
 
-					while (rep--) {
-						if (ctx->dst.offset >= ctx->dst.len) {
-							STPK_ERR("Reached end of temporary buffer while writing byte run\n");
-							return 1;
-						}
-
-						ctx->dst.data[ctx->dst.offset++] = cur;
+					if (stpk_rleCopyByte(ctx, cur, rep)) {
+						return 1;
 					}
 			}
 		}
@@ -437,6 +422,22 @@ uint stpk_rleDecodeOne(stpk_Context *ctx, const uchar *escLookup)
 
 	if (ctx->src.offset < ctx->src.len) {
 		STPK_WARN("RLE decoding finished with unprocessed data left in source buffer (%d bytes left)\n", ctx->src.len - ctx->src.offset);
+	}
+
+	return 0;
+}
+
+inline uint stpk_rleCopyByte(stpk_Context *ctx, uchar cur, uint rep)
+{
+	STPK_VERBOSE2("%6d %6d    %02X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
+
+	while (rep--) {
+		if (ctx->dst.offset >= ctx->dst.len) {
+			STPK_ERR("Reached end of temporary buffer while writing byte run\n");
+			return 1;
+		}
+
+		ctx->dst.data[ctx->dst.offset++] = cur;
 	}
 
 	return 0;
