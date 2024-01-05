@@ -15,7 +15,7 @@ ifneq (,$(findstring wc,$(firstword $(CC))))
 	EXESUFFIX = .exe
 # Detect Mingw compiler
 else ifneq (,$(findstring mingw,$(firstword $(CC))))
-    EXESUFFIX = .exe
+	EXESUFFIX = .exe
 # Detect Zig cc for Windows
 else ifneq (,$(findstring windows,$(CC)))
 	EXESUFFIX = .exe

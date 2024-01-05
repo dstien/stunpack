@@ -136,7 +136,7 @@ void printHelp(char *progName)
 	printf(BANNER);
 
 	printf(USAGE, progName);
-	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\")\n",
+	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\"\n",
 		stpk_versionStr(STPK_VER_AUTO),
 		stpk_versionStr(STPK_VER_STUNTS10),
 		stpk_versionStr(STPK_VER_STUNTS11)

@@ -191,7 +191,7 @@ uint stpk_decomp(stpk_Context *ctx)
 
 				// Data left must be checked for BB Stunts 1.0 bit stream detection
 				// heuristics, but it is not an error. SDTITL.PVS in BB Stunts 1.1
-				// has 95 byte extra, which is random data that is ignored.
+				// has 95 bytes extra, which is random data that is ignored.
 				if (retval == STPK_RET_ERR_DATA_LEFT) {
 					retval = STPK_RET_OK;
 				}
@@ -458,8 +458,8 @@ uint stpk_decompHuff(stpk_Context *ctx)
 	STPK_VERBOSE1("  %-10s %d\n", "levels", levels);
 	STPK_VERBOSE1("  %-10s %d\n\n", "delta", delta);
 
-	if ((levels & STPK_HUFF_LEVELS_MASK) > STPK_HUFF_LEVELS_MAX) {
-		STPK_ERR("Huffman tree levels greater than %d, got %d\n", STPK_HUFF_LEVELS_MAX, levels & STPK_HUFF_LEVELS_MASK);
+	if (levels > STPK_HUFF_LEVELS_MAX) {
+		STPK_ERR("Huffman tree levels greater than %d, got %d\n", STPK_HUFF_LEVELS_MAX, levels);
 		return 1;
 	}
 
