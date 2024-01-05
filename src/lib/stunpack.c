@@ -62,8 +62,13 @@ const char *stpk_versionStr(stpk_Version version)
 
 stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
 {
-	stpk_Buffer empty = { NULL, 0, 0 };
+	stpk_Buffer empty = {
+		.data = NULL,
+		.offset = 0,
+		.len = 0
+	};
 
+	// Open Watcom does not support designated initializers with struct values (2024-01-06)
 	stpk_Context ctx;
 	ctx.src = empty;
 	ctx.dst = empty;

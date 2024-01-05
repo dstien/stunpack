@@ -76,7 +76,6 @@ jobs:
           case ${{ matrix.platform.name }} in
             msdos*)
               echo CC=wcl386 >> $GITHUB_ENV
-              echo AR=wlib >> $GITHUB_ENV
               echo "INCLUDE=$WATCOM/h" >> $GITHUB_ENV
               echo "LIB=$WATCOM/lib386" >> $GITHUB_ENV
               echo "PATH=$WATCOM/binl:$WATCOM/binw:$PATH" >> $GITHUB_ENV

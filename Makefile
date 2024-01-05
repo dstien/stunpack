@@ -12,9 +12,10 @@ INSTALLDIR ?= /usr/local/bin
 
 # Detect Watcom compiler
 ifneq (,$(findstring wc,$(firstword $(CC))))
-	CFLAGS = -d0 -ox -za99 -zq -c -i="$(CURDIR)/include" -fo=
+	CFLAGS = -d0 -ox -zastd=c99 -aa -zq -c -i="$(CURDIR)/include" -fo=
 	LDFLAGS = -zq -l=pmodew -fe=
-	ARFLAGS =
+	AR = wlib
+	ARFLAGS = -q
 	EXESUFFIX = .exe
 	LIBSUFFIX = .lib
 # Detect Mingw compiler
