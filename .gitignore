@@ -2,5 +2,7 @@ build
 **/stunpack
 **/*.exe
 **/*.o
+**/*.a
+**/*.lib
 **/*.err
 **/*.pdb

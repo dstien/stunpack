@@ -39,8 +39,8 @@ jobs:
             PKG_TYPE=tar.gz
           fi
 
-          PROJ_NAME=$(grep '#define STPK_NAME' src/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
-          PROJ_VERSION=$(grep '#define STPK_VERSION' src/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
+          PROJ_NAME=$(grep '#define STPK_NAME' include/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
+          PROJ_VERSION=$(grep '#define STPK_VERSION' include/stunpack.h | awk '{$1=$2=""; print $0}' | tr -d \" | xargs)
           RELEASE_TITLE="${PROJ_NAME} ${PROJ_VERSION}"
           RELEASE_NAME="${PROJ_NAME}-${PROJ_VERSION}"
           RELEASE_ROOT=release

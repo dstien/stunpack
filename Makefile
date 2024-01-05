@@ -3,16 +3,20 @@ BUILDDIR ?= .
 SUBDIRS = src
 
 # Default GNU tool chain options
-CC ?= gcc
-CFLAGS += -c -O2 -Wall -o 
+CFLAGS += -c -O2 -Wall -I"$(CURDIR)/include" -o 
 LDFLAGS += -o 
+
 EXESUFFIX ?=
+LIBSUFFIX ?= .a
+INSTALLDIR ?= /usr/local/bin
 
 # Detect Watcom compiler
 ifneq (,$(findstring wc,$(firstword $(CC))))
-	CFLAGS = -d0 -ox -za99 -zq -c -fo=
+	CFLAGS = -d0 -ox -za99 -zq -c -i="$(CURDIR)/include" -fo=
 	LDFLAGS = -zq -l=pmodew -fe=
+	ARFLAGS =
 	EXESUFFIX = .exe
+	LIBSUFFIX = .lib
 # Detect Mingw compiler
 else ifneq (,$(findstring mingw,$(firstword $(CC))))
 	EXESUFFIX = .exe
@@ -21,12 +25,14 @@ else ifneq (,$(findstring windows,$(CC)))
 	EXESUFFIX = .exe
 endif
 
-export CC CFLAGS LDFLAGS EXESUFFIX
+export CC CFLAGS LDFLAGS AR ARFLAGS EXESUFFIX LIBSUFFIX INSTALLDIR
 
-all clean install uninstall:
-	@for dir in $(SUBDIRS); do \
-		test -d "$(BUILDDIR)/$$dir" || mkdir -p "$(BUILDDIR)/$$dir"; \
-		$(MAKE) -C $$dir BUILDDIR="../$(BUILDDIR)/$$dir" $@; \
-	done
+subdirs: $(SUBDIRS)
 
-.PHONY: all clean install uninstall
+$(SUBDIRS):
+	test -d "$(BUILDDIR)/$@" || mkdir -p "$(BUILDDIR)/$@"
+	$(MAKE) -C $@ BUILDDIR="../$(BUILDDIR)/$@" $(MAKECMDGOALS)
+
+all clean install uninstall: subdirs
+
+.PHONY: all clean install uninstall subdirs $(SUBDIRS)

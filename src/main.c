@@ -30,7 +30,7 @@
 #	include <getopt.h>
 #endif
 
-#include "stunpack.h"
+#include <stunpack.h>
 
 #define BANNER STPK_NAME" "STPK_VERSION" - Stunts/4D [Sports] Driving game resource unpacker\n\n"
 #define USAGE  "Usage: %s [OPTIONS]... SOURCE-FILE [DESTINATION-FILE]\n"

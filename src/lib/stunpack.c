@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stunpack.h"
+#include <stunpack.h>
 
 #define STPK_LOG(show, type, msg, ...) if (show && ctx->logCallback) ctx->logCallback((type), (msg), ## __VA_ARGS__)
 #define STPK_MSG(msg, ...)       STPK_LOG(ctx->verbosity,      STPK_LOG_INFO, (msg), ## __VA_ARGS__)
