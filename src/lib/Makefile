@@ -1,6 +1,5 @@
-# TODO: Configurable suffix
 BIN = libstunpack$(LIBSUFFIX)
-SRCS = stunpack.c
+SRCS = stunpack.c stunts.c stunts_huff.c stunts_rle.c util.c
 OBJS = $(SRCS:%.c=$(BUILDDIR)/%.o)
 
 all: $(BUILDDIR)/$(BIN)

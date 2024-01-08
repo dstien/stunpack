@@ -63,13 +63,13 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "g:p:hqv")) != -1) {
 		switch (opt) {
 			case 'g':
-				if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_AUTO)) == 0) {
+				if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_AUTO)) == 0) {
 					format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
 				}
-				else if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_1_0)) == 0) {
+				else if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_0)) == 0) {
 					format.stunts.version = STPK_FMT_STUNTS_VER_1_0;
 				}
-				else if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_1_1)) == 0) {
+				else if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_1)) == 0) {
 					format.stunts.version = STPK_FMT_STUNTS_VER_1_1;
 				}
 				else {
@@ -143,9 +143,9 @@ void printHelp(char *progName)
 
 	printf(USAGE, progName);
 	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\"\n",
-		stpk_versionStr(STPK_FMT_STUNTS_VER_AUTO),
-		stpk_versionStr(STPK_FMT_STUNTS_VER_1_0),
-		stpk_versionStr(STPK_FMT_STUNTS_VER_1_1)
+		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_AUTO),
+		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_0),
+		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_1)
 	);
 	printf("  -p NUM   limit to NUM decompression passes\n");
 	printf("  -v       verbose output\n");
@@ -203,10 +203,10 @@ int decompress(char *srcFileName, char *dstFileName, stpk_Format format, int ver
 		goto closeSrcFile;
 	}
 
-	if (ctx.src.len > STPK_MAX_SIZE) {
-		ERR("Source file \"%s\" size (%d) exceeds max size (%d).\n", srcFileName, ctx.src.len, STPK_MAX_SIZE);
-		goto closeSrcFile;
-	}
+	//if (ctx.src.len > STPK_MAX_SIZE) {
+	//	ERR("Source file \"%s\" size (%d) exceeds max size (%d).\n", srcFileName, ctx.src.len, STPK_MAX_SIZE);
+	//	goto closeSrcFile;
+	//}
 
 	if (fseek(srcFile, 0, SEEK_SET) != 0) {
 		ERR("Error seeking for start position in source file \"%s\". (%s)\n", srcFileName, strerror(errno));
