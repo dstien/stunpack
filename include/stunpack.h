@@ -51,8 +51,54 @@
 #define STPK_HUFF_PREFIX_MSB   (1 << (STPK_HUFF_PREFIX_WIDTH - 1))
 #define STPK_HUFF_WIDTH_ESC    0x40
 
-typedef enum { STPK_VER_AUTO, STPK_VER_STUNTS10, STPK_VER_STUNTS11 } stpk_Version;
-typedef enum { STPK_LOG_INFO, STPK_LOG_WARN, STPK_LOG_ERR } stpk_LogType;
+typedef enum {
+	// Automatic format detection when decompressing.
+	STPK_FMT_AUTO,
+	// Custom compression format used by the PC versions of Stunts/4-D Sports Driving.
+	STPK_FMT_STUNTS,
+	// EA compression library by Frank Barchard used by 4-D Sports Driving for Amiga and 4-D Driving for PC98.
+	STPK_FMT_BARCHARD,
+	// Amiga RPck archiver format used for 3-d shapes in 4-D Sports Driving for Amiga.
+	STPK_FMT_RPCK
+} stpk_FmtType;
+
+typedef enum {
+	STPK_FMT_STUNTS_VER_AUTO,
+	STPK_FMT_STUNTS_VER_1_0,
+	STPK_FMT_STUNTS_VER_1_1
+} stpk_FmtStuntsVer;
+
+//typedef enum {
+//	STPK_FMT_STUNTS_RLE,
+//	STPK_FMT_STUNTS_HUFF
+//} stpk_FmtStuntsMethod;
+
+typedef struct {
+	stpk_FmtStuntsVer version;
+	int maxPasses;
+} stpk_FmtStunts;
+
+//typedef struct {
+//} stpk_FmtBarchard;
+
+//typedef struct {
+//} stpk_FmtRpck;
+
+typedef struct {
+	stpk_FmtType type;
+	union {
+		stpk_FmtStunts   stunts;
+		//stpk_FmtBarchard barchard;
+		//stpk_FmtRpck     rpck;
+	};
+} stpk_Format;
+
+typedef enum {
+	STPK_LOG_INFO,
+	STPK_LOG_WARN,
+	STPK_LOG_ERR
+} stpk_LogType;
+
 typedef void (*stpk_LogCallback)(stpk_LogType type, const char *msg, ...);
 typedef void* (*stpk_AllocCallback)(size_t size);
 typedef void (*stpk_DeallocCallback)(void *ptr);
@@ -66,18 +112,19 @@ typedef struct {
 typedef struct {
 	stpk_Buffer          src;
 	stpk_Buffer          dst;
-	stpk_Version         version;
-	int                  maxPasses;
+	stpk_Format          format;
 	int                  verbosity;
 	stpk_LogCallback     logCallback;
 	stpk_AllocCallback   allocCallback;
 	stpk_DeallocCallback deallocCallback;
 } stpk_Context;
 
-const char *stpk_versionStr(stpk_Version version);
-stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback);
+stpk_Context stpk_init(stpk_Format format, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback);
 void stpk_deinit(stpk_Context *ctx);
-unsigned int stpk_decomp(stpk_Context *ctx);
+
+unsigned int stpk_decompress(stpk_Context *ctx);
+
+const char *stpk_versionStr(stpk_FmtStuntsVer version);
 
 unsigned int stpk_decompRLE(stpk_Context *ctx);
 unsigned int stpk_rleDecodeSeq(stpk_Context *ctx, unsigned char esc);

@@ -40,31 +40,37 @@
 #define VERBOSE(msg, ...)  if (verbose > 1) printf(msg, ## __VA_ARGS__)
 
 void printHelp(char *progName);
-int decompress(char *srcFileName, char *dstFileName, stpk_Version version, int passes, int verbose);
+int decompress(char *srcFileName, char *dstFileName, stpk_Format format, int verbose);
 
 int main(int argc, char **argv)
 {
 	char *srcFileName = NULL, *dstFileName = NULL;
-	int retval = 0, opt, passes = 0, verbose = 1, srcFileNameLen = 0;
+	int retval = 0, opt, verbose = 1, srcFileNameLen = 0;
 #if defined(__WATCOMC__)
 	const int dstFileNamePostfixLen = 0;
 #else
 	const int dstFileNamePostfixLen = 4;
 #endif
-	stpk_Version gameVersion = STPK_VER_AUTO;
+	stpk_FmtStunts stunts = {
+		.version = STPK_FMT_STUNTS_VER_AUTO,
+		.maxPasses = 0
+	};
+	stpk_Format format;
+	format.type = STPK_FMT_STUNTS;
+	format.stunts = stunts;
 
 	// Parse options.
 	while ((opt = getopt(argc, argv, "g:p:hqv")) != -1) {
 		switch (opt) {
 			case 'g':
-				if (strcasecmp(optarg, stpk_versionStr(STPK_VER_AUTO)) == 0) {
-					gameVersion = STPK_VER_AUTO;
+				if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_AUTO)) == 0) {
+					format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
 				}
-				else if (strcasecmp(optarg, stpk_versionStr(STPK_VER_STUNTS10)) == 0) {
-					gameVersion = STPK_VER_STUNTS10;
+				else if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_1_0)) == 0) {
+					format.stunts.version = STPK_FMT_STUNTS_VER_1_0;
 				}
-				else if (strcasecmp(optarg, stpk_versionStr(STPK_VER_STUNTS11)) == 0) {
-					gameVersion = STPK_VER_STUNTS11;
+				else if (strcasecmp(optarg, stpk_versionStr(STPK_FMT_STUNTS_VER_1_1)) == 0) {
+					format.stunts.version = STPK_FMT_STUNTS_VER_1_1;
 				}
 				else {
 					fprintf(stderr, "Invalid game version \"%s\".\n", optarg);
@@ -72,7 +78,7 @@ int main(int argc, char **argv)
 				}
 				break;
 			case 'p':
-				passes = atoi(optarg);
+				format.stunts.maxPasses = atoi(optarg);
 				break;
 			case 'h':
 				printHelp(argv[0]);
@@ -121,7 +127,7 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	retval = decompress(srcFileName, dstFileName, gameVersion, passes, verbose);
+	retval = decompress(srcFileName, dstFileName, format, verbose);
 
 	// Clean up.
 	if (dstFileName != NULL && srcFileNameLen) {
@@ -137,9 +143,9 @@ void printHelp(char *progName)
 
 	printf(USAGE, progName);
 	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\"\n",
-		stpk_versionStr(STPK_VER_AUTO),
-		stpk_versionStr(STPK_VER_STUNTS10),
-		stpk_versionStr(STPK_VER_STUNTS11)
+		stpk_versionStr(STPK_FMT_STUNTS_VER_AUTO),
+		stpk_versionStr(STPK_FMT_STUNTS_VER_1_0),
+		stpk_versionStr(STPK_FMT_STUNTS_VER_1_1)
 	);
 	printf("  -p NUM   limit to NUM decompression passes\n");
 	printf("  -v       verbose output\n");
@@ -173,12 +179,12 @@ void logCallback(stpk_LogType type, const char *msg, ...)
 	va_end(args);
 }
 
-int decompress(char *srcFileName, char *dstFileName, stpk_Version version, int passes, int verbose)
+int decompress(char *srcFileName, char *dstFileName, stpk_Format format, int verbose)
 {
 	unsigned int retval = 1;
 	FILE *srcFile, *dstFile;
 
-	stpk_Context ctx = stpk_init(version, passes, verbose, logCallback, malloc, free);
+	stpk_Context ctx = stpk_init(format, verbose, logCallback, malloc, free);
 
 	if ((srcFile = fopen(srcFileName, "rb")) == NULL) {
 		ERR("Error opening source file \"%s\" for reading. (%s)\n", srcFileName, strerror(errno));
@@ -217,7 +223,7 @@ int decompress(char *srcFileName, char *dstFileName, stpk_Version version, int p
 		goto freeBuffers;
 	}
 
-	retval = stpk_decomp(&ctx);
+	retval = stpk_decompress(&ctx);
 
 	// Flush unpacked data to file.
 	if (!retval) {

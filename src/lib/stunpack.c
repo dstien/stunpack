@@ -45,21 +45,21 @@ inline void stpk_dst2src(stpk_Context *ctx);
 char *stpk_stringBits16(unsigned short val);
 void stpk_printArray(const stpk_Context *ctx, const unsigned char *arr, unsigned int len, const char *name);
 
-const char *stpk_versionStr(stpk_Version version)
+const char *stpk_versionStr(stpk_FmtStuntsVer version)
 {
 	switch (version) {
-		case STPK_VER_AUTO:
+		case STPK_FMT_STUNTS_VER_AUTO:
 			return "auto";
-		case STPK_VER_STUNTS10:
+		case STPK_FMT_STUNTS_VER_1_0:
 			return "stunts1.0";
-		case STPK_VER_STUNTS11:
+		case STPK_FMT_STUNTS_VER_1_1:
 			return "stunts1.1";
 		default:
 			return "Unknown";
 	}
 }
 
-stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
+stpk_Context stpk_init(stpk_Format format, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
 {
 	stpk_Buffer empty = {
 		.data = NULL,
@@ -71,8 +71,7 @@ stpk_Context stpk_init(stpk_Version version, int maxPasses, int verbosity, stpk_
 	stpk_Context ctx;
 	ctx.src = empty;
 	ctx.dst = empty;
-	ctx.version = version;
-	ctx.maxPasses = maxPasses;
+	ctx.format = format;
 	ctx.verbosity = verbosity;
 	ctx.logCallback = logCallback;
 	ctx.allocCallback = allocCallback;
@@ -125,12 +124,12 @@ int inline stpk_isRle(stpk_Buffer *buf)
 }
 
 // Decompress sub-files in source buffer.
-unsigned int stpk_decomp(stpk_Context *ctx)
+unsigned int stpk_decompress(stpk_Context *ctx)
 {
 	unsigned char passes, type, i;
 	unsigned int retval = 1, finalLen, srcOffset;
 
-	STPK_VERBOSE1("  %-10s %s\n", "version", stpk_versionStr(ctx->version));
+	STPK_VERBOSE1("  %-10s %s\n", "version", stpk_versionStr(ctx->format.stunts.version));
 
 	passes = ctx->src.data[ctx->src.offset];
 	if (STPK_GET_FLAG(passes, STPK_PASSES_RECUR)) {
@@ -175,7 +174,7 @@ unsigned int stpk_decomp(stpk_Context *ctx)
 				srcOffset = ctx->src.offset;
 				retval = stpk_decompHuff(ctx);
 				// If selected version is "auto", check if we should retry with BB Stunts 1.0.
-				if (ctx->version == STPK_VER_AUTO
+				if (ctx->format.stunts.version == STPK_FMT_STUNTS_VER_AUTO
 					&& (
 						// Decompression failed.
 						retval == STPK_RET_ERR
@@ -186,12 +185,12 @@ unsigned int stpk_decomp(stpk_Context *ctx)
 					)
 				) {
 					STPK_WARN("Huffman decompression with Stunts 1.1 bit stream format failed, retrying with Stunts 1.0 format.\n");
-					ctx->version = STPK_VER_STUNTS10;
+					ctx->format.stunts.version = STPK_FMT_STUNTS_VER_1_0;
 					ctx->src.offset = srcOffset;
 					ctx->dst.offset = 0;
 					STPK_NOVERBOSE("Pass %d/%d: ", i + 1, passes);
 					retval = stpk_decompHuff(ctx);
-					ctx->version = STPK_VER_AUTO;
+					ctx->format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
 				}
 
 				// Data left must be checked for BB Stunts 1.0 bit stream detection
@@ -210,8 +209,8 @@ unsigned int stpk_decomp(stpk_Context *ctx)
 			return retval;
 		}
 
-		if (i + 1 == ctx->maxPasses && passes != ctx->maxPasses) {
-			STPK_MSG("Parsing limited to %d decompression pass(es), aborting.\n", ctx->maxPasses);
+		if (i + 1 == ctx->format.stunts.maxPasses && passes != ctx->format.stunts.maxPasses) {
+			STPK_MSG("Parsing limited to %d decompression pass(es), aborting.\n", ctx->format.stunts.maxPasses);
 			return 0;
 		}
 
@@ -677,7 +676,7 @@ inline unsigned char stpk_getHuffByte(stpk_Context *ctx)
 	};
 
 	unsigned char byte = ctx->src.data[ctx->src.offset++];
-	if (ctx->version == STPK_VER_STUNTS10) {
+	if (ctx->format.stunts.version == STPK_FMT_STUNTS_VER_1_0) {
 		byte = reverseBits[byte];
 	}
 	return byte;
