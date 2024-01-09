@@ -42,6 +42,7 @@ int util_allocDst(stpk_Context *ctx);
 void util_dst2src(stpk_Context *ctx);
 
 char *util_stringBits16(unsigned short val);
+unsigned char *util_stringCharsSafe(const unsigned char *src, unsigned char *dst, unsigned int len);
 void util_printArray(const stpk_Context *ctx, const unsigned char *arr, unsigned int len, const char *name);
 
 #endif

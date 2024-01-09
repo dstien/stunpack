@@ -1,5 +1,5 @@
 BIN = libstunpack$(LIBSUFFIX)
-SRCS = stunpack.c stunts.c stunts_huff.c stunts_rle.c util.c
+SRCS = rpck.c stunpack.c stunts.c stunts_huff.c stunts_rle.c util.c
 OBJS = $(SRCS:%.c=$(BUILDDIR)/%.o)
 
 all: $(BUILDDIR)/$(BIN)

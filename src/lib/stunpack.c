@@ -19,6 +19,7 @@
 
 #include <stunpack.h>
 
+#include "rpck.h"
 #include "stunts.h"
 
 stpk_Context stpk_init(stpk_Format format, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
@@ -63,6 +64,8 @@ void stpk_deinit(stpk_Context *ctx)
 unsigned int stpk_decompress(stpk_Context *ctx)
 {
 	switch (stpk_getFmtType(ctx)) {
+		case STPK_FMT_RPCK:
+			return rpck_decompress(ctx);
 		case STPK_FMT_STUNTS:
 			return stunts_decompress(ctx);
 		default:
@@ -74,11 +77,7 @@ unsigned int stpk_decompress(stpk_Context *ctx)
 stpk_FmtType stpk_getFmtType(stpk_Context *ctx)
 {
 	if (ctx->format.type == STPK_FMT_AUTO) {
-		// TODO: Check other header details, cleanup, move to rpck.c.
-		if (ctx->src.data[0] == 'R'
-		&& ctx->src.data[1] == 'P'
-		&& ctx->src.data[2] == 'c'
-		&& ctx->src.data[3] == 'k') {
+		if (rpck_isValid(ctx)) {
 			ctx->format.type = STPK_FMT_RPCK;
 		}
 		// TODO: Check other header details, cleanup, move to barchard.c.

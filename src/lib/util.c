@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <string.h>
 
@@ -52,6 +53,16 @@ char *util_stringBits16(unsigned short val)
 	buf[i] = 0;
 
 	return buf;
+}
+
+// Copy n-1 bytes from source to fixed destination buffer as printable ASCII characters.
+unsigned char *util_stringCharsSafe(const unsigned char *src, unsigned char *dst, unsigned int len)
+{
+    for (unsigned i = 0; i < len - 1; i++) {
+        dst[i] = isprint(src[i]) ? src[i] : '.';
+    }
+    dst[len] = 0;
+    return dst;
 }
 
 // Print formatted array. Used in verbose output.
