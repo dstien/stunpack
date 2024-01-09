@@ -24,13 +24,25 @@
 
 inline unsigned int stunts_rle_repeatByte(stpk_Context *ctx, unsigned char cur, unsigned int rep);
 
+// Check if data at given offset is a likely RLE header:
+// - Type is RLE
+// - Reserved byte after length is 0x00
+// - Escape code length between 1 and 10
+int stunts_rle_isValid(stpk_Buffer *buf, unsigned int offset)
+{
+	return buf->data[offset + 0] == STUNTS_TYPE_RLE
+		&& buf->data[offset + 7] == 0 // Reserved, always 0
+        && (buf->data[offset + 8] & STUNTS_RLE_ESCLEN_MASK) >= 1
+		&& (buf->data[offset + 8] & STUNTS_RLE_ESCLEN_MASK) <= STUNTS_RLE_ESCLEN_MAX;
+}
+
 // Decompress run-length encoded sub-file.
 unsigned int stunts_rle_decompress(stpk_Context *ctx)
 {
 	unsigned int srcLen, dstLen, i;
 	unsigned char unk, escLen, esc[STUNTS_RLE_ESCLEN_MAX], escLookup[STUNTS_RLE_ESCLOOKUP_LEN];
 
-	stunts_getLength(&ctx->src, &srcLen);
+	srcLen = stunts_readLength(&ctx->src);
 	UTIL_VERBOSE1("  %-10s %d\n", "srcLen", srcLen);
 
 	unk = ctx->src.data[ctx->src.offset++];

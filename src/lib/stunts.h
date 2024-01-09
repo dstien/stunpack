@@ -22,21 +22,29 @@
 
 #include <stunpack.h>
 
-#define STUNTS_MAX_SIZE          0xFFFFFF
+#define STUNTS_SIZE_MAX          0xFFFFFF
+#define STUNTS_SIZE_MIN          0x10
 #define STUNTS_PASSES_MASK       0x7F
 #define STUNTS_PASSES_RECUR      0x80
 
 #define STUNTS_TYPE_RLE          0x01
 #define STUNTS_TYPE_HUFF         0x02
 
+int stunts_isValid(stpk_Context *ctx);
 unsigned int stunts_decompress(stpk_Context *ctx);
 
-// Read file length: WORD remainder + BYTE multiplier * 0x10000.
-inline void stunts_getLength(stpk_Buffer *buf, unsigned int *len)
+// Peek at 24-bit data length.
+inline unsigned int stunts_peekLength(unsigned char *data, unsigned int offset)
 {
-	*len =  buf->data[buf->offset] | buf->data[buf->offset + 1] << 8; // Read remainder.
-	*len += 0x10000 * buf->data[buf->offset + 2]; // Add multiplier.
+	return data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16;
+}
+
+// Read 24-bit data length and advance buffer offset.
+inline unsigned int stunts_readLength(stpk_Buffer *buf)
+{
+    unsigned int len = stunts_peekLength(buf->data, buf->offset);
 	buf->offset += 3;
+    return len;
 }
 
 #endif

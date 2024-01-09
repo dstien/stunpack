@@ -62,7 +62,40 @@ void stpk_deinit(stpk_Context *ctx)
 
 unsigned int stpk_decompress(stpk_Context *ctx)
 {
-	return stunts_decompress(ctx);
+	switch (stpk_getFmtType(ctx)) {
+		case STPK_FMT_STUNTS:
+			return stunts_decompress(ctx);
+		default:
+			return STPK_RET_ERR_UNKNOWN_FMT;
+	}
+}
+
+// Guess format type if user didn't specify format in context.
+stpk_FmtType stpk_getFmtType(stpk_Context *ctx)
+{
+	if (ctx->format.type == STPK_FMT_AUTO) {
+		// TODO: Check other header details, cleanup, move to rpck.c.
+		if (ctx->src.data[0] == 'R'
+		&& ctx->src.data[1] == 'P'
+		&& ctx->src.data[2] == 'c'
+		&& ctx->src.data[3] == 'k') {
+			ctx->format.type = STPK_FMT_RPCK;
+		}
+		// TODO: Check other header details, cleanup, move to barchard.c.
+		else if (ctx->src.data[1] == 0xFB) {
+			ctx->format.type = STPK_FMT_BARCHARD;
+		}
+		else if (stunts_isValid(ctx)) {
+			ctx->format.type = STPK_FMT_STUNTS;
+			ctx->format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
+			ctx->format.stunts.maxPasses = 0;
+		}
+		else {
+			ctx->format.type = STPK_FMT_UNKNOWN;
+		}
+	}
+
+	return ctx->format.type;
 }
 
 const char *stpk_fmtStuntsVerStr(stpk_FmtStuntsVer version)

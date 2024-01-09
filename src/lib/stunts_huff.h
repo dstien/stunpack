@@ -32,6 +32,7 @@
 #define STUNTS_HUFF_PREFIX_MSB   (1 << (STUNTS_HUFF_PREFIX_WIDTH - 1))
 #define STUNTS_HUFF_WIDTH_ESC    0x40
 
+int stunts_huff_isValid(stpk_Buffer *buf, unsigned int offset);
 unsigned int stunts_huff_decompress(stpk_Context *ctx);
 unsigned int stunts_huff_genOffsets(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, short *codeOffsets, unsigned short *totalCodes);
 void stunts_huff_genPrefix(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, const unsigned char *alphabet, unsigned char *symbols, unsigned char *widths);

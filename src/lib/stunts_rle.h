@@ -28,6 +28,7 @@
 #define STUNTS_RLE_ESCLOOKUP_LEN 0x100
 #define STUNTS_RLE_ESCSEQ_POS    0x01
 
+int stunts_rle_isValid(stpk_Buffer *buf, unsigned int offset);
 unsigned int stunts_rle_decompress(stpk_Context *ctx);
 unsigned int stunts_rle_decodeSeq(stpk_Context *ctx, unsigned char esc);
 unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLookup);

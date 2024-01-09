@@ -35,6 +35,7 @@
 					util_stringBits16(curWord), code, ## __VA_ARGS__)
 
 #define UTIL_GET_FLAG(data, mask) ((data & mask) == mask)
+#define UTIL_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define UTIL_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 int util_allocDst(stpk_Context *ctx);

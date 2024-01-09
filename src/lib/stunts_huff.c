@@ -17,11 +17,24 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include "stunts.h"
 #include "util.h"
 
 #include "stunts_huff.h"
 
 inline unsigned char stpk_getHuffByte(stpk_Context *ctx);
+
+// Check if data at given offset is a likely Huffman header:
+// - Type is Huffman
+// - Tree levels between 2 and 16
+// - No leaves at root node
+int stunts_huff_isValid(stpk_Buffer *buf, unsigned int offset)
+{
+	return buf->data[offset + 0] == STUNTS_TYPE_HUFF
+        && (buf->data[offset + 4] & STUNTS_HUFF_LEVELS_MASK) >= 2
+		&& (buf->data[offset + 4] & STUNTS_HUFF_LEVELS_MASK) <= STUNTS_HUFF_LEVELS_MAX
+		&& buf->data[offset + 5] == 0; // Leaves at root
+}
 
 // Decompress Huffman coded sub-file.
 unsigned int stunts_huff_decompress(stpk_Context *ctx)

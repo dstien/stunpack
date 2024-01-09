@@ -23,7 +23,45 @@
 
 #include "stunts.h"
 
-int inline stunts_isRle(stpk_Buffer *buf);
+// Stunts compression does not have any identifier bytes, so we check if the
+// contents corresponds to legal combinations of header values.
+int stunts_isValid(stpk_Context *ctx)
+{
+	// Check if the source length is within the limits of what the format supports.
+	if (ctx->src.len < STUNTS_SIZE_MIN || ctx->src.len > STUNTS_SIZE_MAX) {
+		return 0;
+	}
+
+	unsigned int totalLength = stunts_peekLength(ctx->src.data, 2);
+
+	// Check if total uncompressed length is larger than the source length.
+	if (totalLength < UTIL_MAX(STUNTS_SIZE_MIN, ctx->src.len - STUNTS_SIZE_MIN)) {
+		return 0;
+	}
+
+	// If the flag for multiple passes is set, a sane file will have
+	// - 2 passes
+	// - Total length longer than first pass' length
+	// - First pass' length between SIZE_MIN and source length - SIZE_MIN
+	// - First pass has either a valid RLE or Huffman header
+	if (UTIL_GET_FLAG(ctx->src.data[0], STUNTS_PASSES_RECUR)) {
+		unsigned char passes = ctx->src.data[0] & STUNTS_PASSES_MASK;
+		unsigned int passLength = stunts_peekLength(ctx->src.data, 5);
+
+		return passes == 2
+			&& totalLength > passLength
+			&& passLength > UTIL_MAX(STUNTS_SIZE_MIN, ctx->src.len - STUNTS_SIZE_MIN)
+			&& (
+				stunts_rle_isValid(&ctx->src, 4)
+				|| stunts_huff_isValid(&ctx->src, 4)
+			);
+	}
+	// A single pass file simply have a valid RLE of Huffman header
+	else {
+		return stunts_rle_isValid(&ctx->src, 0)
+			|| stunts_huff_isValid(&ctx->src, 0);
+	}
+}
 
 // Decompress sub-files in source buffer.
 unsigned int stunts_decompress(stpk_Context *ctx)
@@ -40,7 +78,7 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 		passes &= STUNTS_PASSES_MASK;
 		UTIL_VERBOSE1("  %-10s %d\n", "passes", passes);
 
-		stunts_getLength(&ctx->src, &finalLen);
+		finalLen = stunts_readLength(&ctx->src);
 		UTIL_VERBOSE1("  %-10s %d\n", "finalLen", finalLen);
 		UTIL_VERBOSE1("    %-8s %d\n", "srcLen", ctx->src.len);
 		UTIL_VERBOSE1("    %-8s %.2f\n", "ratio", (float)finalLen / ctx->src.len);
@@ -59,7 +97,7 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 		UTIL_VERBOSE1("\nPass %d/%d\n", i + 1, passes);
 
 		type = ctx->src.data[ctx->src.offset++];
-		stunts_getLength(&ctx->src, &ctx->dst.len);
+		ctx->dst.len = stunts_readLength(&ctx->src);
 		UTIL_VERBOSE1("  %-10s %d\n", "dstLen", ctx->dst.len);
 
 		if (util_allocDst(ctx)) {
@@ -83,7 +121,7 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 						// Decompression had source data left, but it is the last pass.
 						|| (retval == STPK_RET_ERR_DATA_LEFT && (i == (passes - 1)))
 						// There are more passes, but the next is not valid RLE.
-						|| ((i < (passes - 1)) && !stunts_isRle(&ctx->dst))
+						|| ((i < (passes - 1)) && !stunts_rle_isValid(&ctx->dst, 0))
 					)
 				) {
 					UTIL_WARN("Huffman decompression with Stunts 1.1 bit stream format failed, retrying with Stunts 1.0 format.\n");
@@ -123,9 +161,4 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 	}
 
 	return 0;
-}
-
-int inline stunts_isRle(stpk_Buffer *buf)
-{
-	return buf->data[0] == STUNTS_TYPE_RLE && buf->data[7] == 0;
 }

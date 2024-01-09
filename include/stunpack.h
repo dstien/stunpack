@@ -26,9 +26,10 @@
 #define STPK_NAME    "stunpack"
 #define STPK_BUGS    "daniel@stien.org"
 
-#define STPK_RET_OK            0
-#define STPK_RET_ERR           1
-#define STPK_RET_ERR_DATA_LEFT 2
+#define STPK_RET_OK                0
+#define STPK_RET_ERR               1
+#define STPK_RET_ERR_UNKNOWN_FMT   3
+#define STPK_RET_ERR_DATA_LEFT    10
 
 typedef enum {
 	// Automatic format detection when decompressing.
@@ -38,7 +39,8 @@ typedef enum {
 	// EA compression library by Frank Barchard used by 4-D Sports Driving for Amiga and 4-D Driving for PC98.
 	STPK_FMT_BARCHARD,
 	// Amiga RPck archiver format used for 3-d shapes in 4-D Sports Driving for Amiga.
-	STPK_FMT_RPCK
+	STPK_FMT_RPCK,
+	STPK_FMT_UNKNOWN
 } stpk_FmtType;
 
 typedef enum {
@@ -102,6 +104,8 @@ stpk_Context stpk_init(stpk_Format format, int verbosity, stpk_LogCallback logCa
 void stpk_deinit(stpk_Context *ctx);
 
 unsigned int stpk_decompress(stpk_Context *ctx);
+
+stpk_FmtType stpk_getFmtType(stpk_Context *ctx);
 
 const char *stpk_fmtStuntsVerStr(stpk_FmtStuntsVer version);
 
