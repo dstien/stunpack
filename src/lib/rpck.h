@@ -31,7 +31,7 @@ unsigned int rpck_decompress(stpk_Context *ctx);
 inline int rpck_checkMagic(stpk_Context *ctx)
 {
     return ctx->src.data[0] == 'R'
-		&& ctx->src.data[1] == 'P'
+		&& (ctx->src.data[1] == 'P' || ctx->src.data[1] == 'p')
 		&& ctx->src.data[2] == 'c'
 		&& ctx->src.data[3] == 'k';
 }
