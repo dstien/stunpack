@@ -27,11 +27,11 @@ int rpck_isValid(stpk_Context *ctx)
 		return 0;
 	}
 
-    uint32_t finalLength = rpck_peekLength(ctx->src.data, 4);
-    uint32_t savedLength = rpck_peekLength(ctx->src.data, 8);
+    uint32_t finalLen = rpck_peekLength(ctx->src.data, 4);
+    uint32_t savedLen = rpck_peekLength(ctx->src.data, 8);
 
     return rpck_checkMagic(ctx)
-        && (finalLength - savedLength + RPCK_SIZE_MIN) == ctx->src.len;
+        && (finalLen - savedLen + RPCK_SIZE_MIN) == ctx->src.len;
 }
 
 unsigned int rpck_decompress(stpk_Context *ctx)
@@ -42,21 +42,22 @@ unsigned int rpck_decompress(stpk_Context *ctx)
 	}
     if (!rpck_checkMagic(ctx)) {
         unsigned char magic[5];
-        UTIL_ERR("Invalid magic bytes. Expected \"RPck\", got \"%s\"\n", magic, util_stringCharsSafe(ctx->src.data, magic, sizeof(magic)));
+        UTIL_ERR("Invalid magic bytes. Expected \"RPck\" or \"Rpck\", got \"%s\"\n", magic, util_stringCharsSafe(ctx->src.data, magic, sizeof(magic)));
         return 0;
     }
     ctx->src.offset += 4;
-    UTIL_VERBOSE1("Format: RPck\n");
 
-    uint32_t finalLength = rpck_readLength(&ctx->src);
-    UTIL_VERBOSE1("Final length  %d\n", finalLength);
-    UTIL_VERBOSE1("Source length %d\n", ctx->src.len);
+    UTIL_NOVERBOSE("Format: RPck\n");
+	UTIL_VERBOSE1("  %-10s %s\n", "format", stpk_fmtTypeStr(ctx->format.type));
+    UTIL_VERBOSE1("  %-10s %d\n", "srcLen", ctx->src.len);
 
-    uint32_t savedLength = rpck_readLength(&ctx->src);
-    UTIL_VERBOSE1("Saved length  %d\n", savedLength);
-    UTIL_VERBOSE1("Ratio %.2f\n", (float)finalLength / ctx->src.len);
+    ctx->dst.len = rpck_readLength(&ctx->src);
+    UTIL_VERBOSE1("  %-10s %d\n", "dstLen", ctx->dst.len);
 
-    ctx->dst.len = finalLength;
+    uint32_t savedLen = rpck_readLength(&ctx->src);
+    UTIL_VERBOSE1("  %-10s %d\n", "savedLen", savedLen);
+    UTIL_VERBOSE1("  %-10s %.2f\n", "ratio", (float)ctx->dst.len / ctx->src.len);
+
     if (util_allocDst(ctx)) {
         return 1;
     }
