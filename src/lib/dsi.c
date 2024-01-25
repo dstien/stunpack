@@ -17,25 +17,25 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stunts_huff.h"
-#include "stunts_rle.h"
+#include "dsi_huff.h"
+#include "dsi_rle.h"
 #include "util.h"
 
-#include "stunts.h"
+#include "dsi.h"
 
-// Stunts compression does not have any identifier bytes, so we check if the
+// DSI compression does not have any identifier bytes, so we check if the
 // contents corresponds to legal combinations of header values.
-int stunts_isValid(stpk_Context *ctx)
+int dsi_isValid(stpk_Context *ctx)
 {
 	// Check if the source length is within the limits of what the format supports.
-	if (ctx->src.len < STUNTS_SIZE_MIN || ctx->src.len > STUNTS_SIZE_MAX) {
+	if (ctx->src.len < DSI_SIZE_MIN || ctx->src.len > DSI_SIZE_MAX) {
 		return 0;
 	}
 
-	unsigned int totalLength = stunts_peekLength(ctx->src.data, 2);
+	unsigned int totalLength = dsi_peekLength(ctx->src.data, 2);
 
 	// Check if total uncompressed length is larger than the source length.
-	if (totalLength < UTIL_MAX(STUNTS_SIZE_MIN, ctx->src.len - STUNTS_SIZE_MIN)) {
+	if (totalLength < UTIL_MAX(DSI_SIZE_MIN, ctx->src.len - DSI_SIZE_MIN)) {
 		return 0;
 	}
 
@@ -44,41 +44,43 @@ int stunts_isValid(stpk_Context *ctx)
 	// - Total length longer than first pass' length
 	// - First pass' length between SIZE_MIN and source length - SIZE_MIN
 	// - First pass has either a valid RLE or Huffman header
-	if (UTIL_GET_FLAG(ctx->src.data[0], STUNTS_PASSES_RECUR)) {
-		unsigned char passes = ctx->src.data[0] & STUNTS_PASSES_MASK;
-		unsigned int passLength = stunts_peekLength(ctx->src.data, 5);
+	if (UTIL_GET_FLAG(ctx->src.data[0], DSI_PASSES_RECUR)) {
+		unsigned char passes = ctx->src.data[0] & DSI_PASSES_MASK;
+		unsigned int passLength = dsi_peekLength(ctx->src.data, 5);
 
 		return passes == 2
 			&& totalLength > passLength
-			&& passLength > UTIL_MAX(STUNTS_SIZE_MIN, ctx->src.len - STUNTS_SIZE_MIN)
+			&& passLength > UTIL_MAX(DSI_SIZE_MIN, ctx->src.len - DSI_SIZE_MIN)
 			&& (
-				stunts_rle_isValid(&ctx->src, 4)
-				|| stunts_huff_isValid(&ctx->src, 4)
+				dsi_rle_isValid(&ctx->src, 4)
+				|| dsi_huff_isValid(&ctx->src, 4)
 			);
 	}
 	// A single pass file simply have a valid RLE of Huffman header
 	else {
-		return stunts_rle_isValid(&ctx->src, 0)
-			|| stunts_huff_isValid(&ctx->src, 0);
+		return dsi_rle_isValid(&ctx->src, 0)
+			|| dsi_huff_isValid(&ctx->src, 0);
 	}
 }
 
 // Decompress sub-files in source buffer.
-unsigned int stunts_decompress(stpk_Context *ctx)
+unsigned int dsi_decompress(stpk_Context *ctx)
 {
 	unsigned char passes, type, i;
 	unsigned int retval = 1, finalLen, srcOffset;
 
-	UTIL_VERBOSE1("  %-10s %s\n", "version", stpk_fmtStuntsVerStr(ctx->format.stunts.version));
+	UTIL_NOVERBOSE("Format: DSI (version: %s)\n", stpk_fmtDsiVerStr(ctx->format.dsi.version));
+	UTIL_VERBOSE1("  %-10s %s\n", "format", stpk_fmtTypeStr(ctx->format.type));
+	UTIL_VERBOSE1("  %-10s %s\n", "version", stpk_fmtDsiVerStr(ctx->format.dsi.version));
 
 	passes = ctx->src.data[ctx->src.offset];
-	if (UTIL_GET_FLAG(passes, STUNTS_PASSES_RECUR)) {
+	if (UTIL_GET_FLAG(passes, DSI_PASSES_RECUR)) {
 		ctx->src.offset++;
 
-		passes &= STUNTS_PASSES_MASK;
+		passes &= DSI_PASSES_MASK;
 		UTIL_VERBOSE1("  %-10s %d\n", "passes", passes);
 
-		finalLen = stunts_readLength(&ctx->src);
+		finalLen = dsi_readLength(&ctx->src);
 		UTIL_VERBOSE1("  %-10s %d\n", "finalLen", finalLen);
 		UTIL_VERBOSE1("    %-8s %d\n", "srcLen", ctx->src.len);
 		UTIL_VERBOSE1("    %-8s %.2f\n", "ratio", (float)finalLen / ctx->src.len);
@@ -97,7 +99,7 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 		UTIL_VERBOSE1("\nPass %d/%d\n", i + 1, passes);
 
 		type = ctx->src.data[ctx->src.offset++];
-		ctx->dst.len = stunts_readLength(&ctx->src);
+		ctx->dst.len = dsi_readLength(&ctx->src);
 		UTIL_VERBOSE1("  %-10s %d\n", "dstLen", ctx->dst.len);
 
 		if (util_allocDst(ctx)) {
@@ -105,32 +107,36 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 		}
 
 		switch (type) {
-			case STUNTS_TYPE_RLE:
+			case DSI_TYPE_RLE:
 				UTIL_VERBOSE1("  %-10s Run-length encoding\n", "type");
-				retval = stunts_rle_decompress(ctx);
+				retval = dsi_rle_decompress(ctx);
 				break;
-			case STUNTS_TYPE_HUFF:
+			case DSI_TYPE_HUFF:
 				UTIL_VERBOSE1("  %-10s Huffman coding\n", "type");
 				srcOffset = ctx->src.offset;
-				retval = stunts_huff_decompress(ctx);
-				// If selected version is "auto", check if we should retry with BB Stunts 1.0.
-				if (ctx->format.stunts.version == STPK_FMT_STUNTS_VER_AUTO
+				retval = dsi_huff_decompress(ctx);
+				// If selected version is "auto", check if we should retry with DSI1.
+				if (ctx->format.dsi.version == STPK_FMT_DSI_VER_AUTO
 					&& (
 						// Decompression failed.
 						retval == STPK_RET_ERR
 						// Decompression had source data left, but it is the last pass.
 						|| (retval == STPK_RET_ERR_DATA_LEFT && (i == (passes - 1)))
 						// There are more passes, but the next is not valid RLE.
-						|| ((i < (passes - 1)) && !stunts_rle_isValid(&ctx->dst, 0))
+						|| ((i < (passes - 1)) && !dsi_rle_isValid(&ctx->dst, 0))
 					)
 				) {
-					UTIL_WARN("Huffman decompression with Stunts 1.1 bit stream format failed, retrying with Stunts 1.0 format.\n");
-					ctx->format.stunts.version = STPK_FMT_STUNTS_VER_1_0;
+					UTIL_WARN("Huffman decompression with %s bit stream format failed, retrying with %s format.\n", 
+						stpk_fmtTypeStr(STPK_FMT_DSI_VER_2),
+						stpk_fmtTypeStr(STPK_FMT_DSI_VER_1)
+					);
+					ctx->format.dsi.version = STPK_FMT_DSI_VER_1;
 					ctx->src.offset = srcOffset;
 					ctx->dst.offset = 0;
 					UTIL_NOVERBOSE("Pass %d/%d: ", i + 1, passes);
-					retval = stunts_huff_decompress(ctx);
-					ctx->format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
+					retval = dsi_huff_decompress(ctx);
+					// Reset to automatic version in case there are more passes.
+					ctx->format.dsi.version = STPK_FMT_DSI_VER_AUTO;
 				}
 
 				// Data left must be checked for BB Stunts 1.0 bit stream detection
@@ -149,8 +155,8 @@ unsigned int stunts_decompress(stpk_Context *ctx)
 			return retval;
 		}
 
-		if (i + 1 == ctx->format.stunts.maxPasses && passes != ctx->format.stunts.maxPasses) {
-			UTIL_MSG("Parsing limited to %d decompression pass(es), aborting.\n", ctx->format.stunts.maxPasses);
+		if (i + 1 == ctx->format.dsi.maxPasses && passes != ctx->format.dsi.maxPasses) {
+			UTIL_MSG("Parsing limited to %d decompression pass(es), aborting.\n", ctx->format.dsi.maxPasses);
 			return 0;
 		}
 

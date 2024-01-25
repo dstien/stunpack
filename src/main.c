@@ -51,35 +51,72 @@ int main(int argc, char **argv)
 #else
 	const int dstFileNamePostfixLen = 4;
 #endif
-	stpk_FmtStunts stunts = {
-		.version = STPK_FMT_STUNTS_VER_AUTO,
+	stpk_FmtDsi dsi = {
+		.version = STPK_FMT_DSI_VER_AUTO,
 		.maxPasses = 0
 	};
 	stpk_Format format;
-	format.type = STPK_FMT_STUNTS;
-	format.stunts = stunts;
+	//format.type = STPK_FMT_DSI;
+	format.type = STPK_FMT_AUTO;
+	//format.dsi = dsi;
 
 	// Parse options.
-	while ((opt = getopt(argc, argv, "g:p:hqv")) != -1) {
+	while ((opt = getopt(argc, argv, "f:s:p:hqv")) != -1) {
 		switch (opt) {
-			case 'g':
-				if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_AUTO)) == 0) {
-					format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
+			// Primary options
+			case 'f':
+				if (strcasecmp(optarg, stpk_fmtTypeStr(STPK_FMT_AUTO)) == 0) {
+					format.type = STPK_FMT_AUTO;
 				}
-				else if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_0)) == 0) {
-					format.stunts.version = STPK_FMT_STUNTS_VER_1_0;
+				else if (strcasecmp(optarg, stpk_fmtTypeStr(STPK_FMT_DSI)) == 0) {
+					format.type = STPK_FMT_DSI;
+					format.dsi = dsi;
 				}
-				else if (strcasecmp(optarg, stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_1)) == 0) {
-					format.stunts.version = STPK_FMT_STUNTS_VER_1_1;
+				else if (strcasecmp(optarg, stpk_fmtTypeStr(STPK_FMT_EAC)) == 0) {
+					format.type = STPK_FMT_EAC;
+				}
+				else if (strcasecmp(optarg, stpk_fmtTypeStr(STPK_FMT_RPCK)) == 0) {
+					format.type = STPK_FMT_RPCK;
 				}
 				else {
-					fprintf(stderr, "Invalid game version \"%s\".\n", optarg);
+					fprintf(stderr, "Invalid format type \"%s\".\n", optarg);
 					return 1;
 				}
 				break;
+
+			// DSI format options
+			case 's':
+				if (format.type != STPK_FMT_DSI) {
+					fprintf(stderr, "Format type must be \"%s\" for -s, got \"%s\"\n",
+						stpk_fmtTypeStr(STPK_FMT_DSI),
+						stpk_fmtTypeStr(format.type));
+					return 1;
+				}
+				if (strcasecmp(optarg, stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_AUTO)) == 0) {
+					format.dsi.version = STPK_FMT_DSI_VER_AUTO;
+				}
+				else if (strcasecmp(optarg, stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_1)) == 0) {
+					format.dsi.version = STPK_FMT_DSI_VER_1;
+				}
+				else if (strcasecmp(optarg, stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_2)) == 0) {
+					format.dsi.version = STPK_FMT_DSI_VER_2;
+				}
+				else {
+					fprintf(stderr, "Invalid DSI version \"%s\".\n", optarg);
+					return 1;
+				}
+				break;	
 			case 'p':
-				format.stunts.maxPasses = atoi(optarg);
+				if (format.type != STPK_FMT_DSI) {
+					fprintf(stderr, "Format type must be \"%s\" for -p, got \"%s\"\n",
+						stpk_fmtTypeStr(STPK_FMT_DSI),
+						stpk_fmtTypeStr(format.type));
+					return 1;
+				}
+				format.dsi.maxPasses = atoi(optarg);
 				break;
+
+			// General options
 			case 'h':
 				printHelp(argv[0]);
 				return 0;
@@ -142,16 +179,34 @@ void printHelp(char *progName)
 	printf(BANNER);
 
 	printf(USAGE, progName);
-	printf("  -g VER   game version: \"%s\" (default), \"%s\", \"%s\"\n",
-		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_AUTO),
-		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_0),
-		stpk_fmtStuntsVerStr(STPK_FMT_STUNTS_VER_1_1)
-	);
-	printf("  -p NUM   limit to NUM decompression passes\n");
-	printf("  -v       verbose output\n");
-	printf("  -vv      very verbose output\n");
-	printf("  -q       no output\n");
-	printf("  -h       print this text and exit\n\n");
+
+	printf("\n  Primary options\n");
+	//printf("    -c       compress\n");
+	//printf("    -d       decompress (default)\n");
+	printf("    -f FMT   compression format: \"%s\" (default), \"%s\", \"%s\", \"%s\"\n\n",
+		stpk_fmtTypeStr(STPK_FMT_AUTO),
+		stpk_fmtTypeStr(STPK_FMT_DSI),
+		stpk_fmtTypeStr(STPK_FMT_EAC),
+		stpk_fmtTypeStr(STPK_FMT_RPCK));
+	//printf("    -g GAME  set format and format options presets for given game:\n             \"%s\", \"%s\", \"%s\", \"%s\"\n\n",
+	//	stpk_gameStr(STPK_GAME_STUNTS_1_0),
+	//	stpk_gameStr(STPK_GAME_STUNTS_1_1),
+	//	stpk_gameStr(STPK_GAME_4D_DRIVING_AMIGA),
+	//	stpk_gameStr(STPK_GAME_4D_DRIVING_PC98)
+	//);
+
+	printf("  DSI format options\n");
+	printf("    -s VER   format version: \"%s\" (default), \"%s\", \"%s\"\n",
+		stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_AUTO),
+		stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_1),
+		stpk_fmtDsiVerStr(STPK_FMT_DSI_VER_2));
+	printf("    -p NUM   limit to NUM decompression passes\n\n");
+
+	printf("  General options\n");
+	printf("    -v       verbose output\n");
+	printf("    -vv      very verbose output\n");
+	printf("    -q       no output\n");
+	printf("    -h       print this text and exit\n\n");
 
 	printf("Report bugs to <"STPK_BUGS">.\n");
 }

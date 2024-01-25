@@ -17,32 +17,32 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stunts.h"
+#include "dsi.h"
 #include "util.h"
 
-#include "stunts_rle.h"
+#include "dsi_rle.h"
 
-inline unsigned int stunts_rle_repeatByte(stpk_Context *ctx, unsigned char cur, unsigned int rep);
+inline unsigned int dsi_rle_repeatByte(stpk_Context *ctx, unsigned char cur, unsigned int rep);
 
 // Check if data at given offset is a likely RLE header:
 // - Type is RLE
 // - Reserved byte after length is 0x00
 // - Escape code length between 1 and 10
-int stunts_rle_isValid(stpk_Buffer *buf, unsigned int offset)
+int dsi_rle_isValid(stpk_Buffer *buf, unsigned int offset)
 {
-	return buf->data[offset + 0] == STUNTS_TYPE_RLE
+	return buf->data[offset + 0] == DSI_TYPE_RLE
 		&& buf->data[offset + 7] == 0 // Reserved, always 0
-        && (buf->data[offset + 8] & STUNTS_RLE_ESCLEN_MASK) >= 1
-		&& (buf->data[offset + 8] & STUNTS_RLE_ESCLEN_MASK) <= STUNTS_RLE_ESCLEN_MAX;
+        && (buf->data[offset + 8] & DSI_RLE_ESCLEN_MASK) >= 1
+		&& (buf->data[offset + 8] & DSI_RLE_ESCLEN_MASK) <= DSI_RLE_ESCLEN_MAX;
 }
 
 // Decompress run-length encoded sub-file.
-unsigned int stunts_rle_decompress(stpk_Context *ctx)
+unsigned int dsi_rle_decompress(stpk_Context *ctx)
 {
 	unsigned int srcLen, dstLen, i;
-	unsigned char unk, escLen, esc[STUNTS_RLE_ESCLEN_MAX], escLookup[STUNTS_RLE_ESCLOOKUP_LEN];
+	unsigned char unk, escLen, esc[DSI_RLE_ESCLEN_MAX], escLookup[DSI_RLE_ESCLOOKUP_LEN];
 
-	srcLen = stunts_readLength(&ctx->src);
+	srcLen = dsi_readLength(&ctx->src);
 	UTIL_VERBOSE1("  %-10s %d\n", "srcLen", srcLen);
 
 	unk = ctx->src.data[ctx->src.offset++];
@@ -53,16 +53,16 @@ unsigned int stunts_rle_decompress(stpk_Context *ctx)
 	}
 
 	escLen = ctx->src.data[ctx->src.offset++];
-	UTIL_VERBOSE1("  %-10s %d (no sequences = %d)\n\n", "escLen", escLen & STUNTS_RLE_ESCLEN_MASK, UTIL_GET_FLAG(escLen, STUNTS_RLE_ESCLEN_NOSEQ));
+	UTIL_VERBOSE1("  %-10s %d (no sequences = %d)\n\n", "escLen", escLen & DSI_RLE_ESCLEN_MASK, UTIL_GET_FLAG(escLen, DSI_RLE_ESCLEN_NOSEQ));
 
-	if ((escLen & STUNTS_RLE_ESCLEN_MASK) > STUNTS_RLE_ESCLEN_MAX) {
-		UTIL_ERR("escLen & STUNTS_RLE_ESCLEN_MASK greater than max length %02X, got %02X\n", STUNTS_RLE_ESCLEN_MAX, escLen & STUNTS_RLE_ESCLEN_MASK);
+	if ((escLen & DSI_RLE_ESCLEN_MASK) > DSI_RLE_ESCLEN_MAX) {
+		UTIL_ERR("escLen & DSI_RLE_ESCLEN_MASK greater than max length %02X, got %02X\n", DSI_RLE_ESCLEN_MAX, escLen & DSI_RLE_ESCLEN_MASK);
 		return 1;
 	}
 
 	// Read escape codes.
-	for (i = 0; i < (escLen & STUNTS_RLE_ESCLEN_MASK); i++) esc[i] = ctx->src.data[ctx->src.offset++];
-	UTIL_VERBOSE_ARR(esc, escLen & STUNTS_RLE_ESCLEN_MASK, "esc");
+	for (i = 0; i < (escLen & DSI_RLE_ESCLEN_MASK); i++) esc[i] = ctx->src.data[ctx->src.offset++];
+	UTIL_VERBOSE_ARR(esc, escLen & DSI_RLE_ESCLEN_MASK, "esc");
 
 	if (ctx->src.offset > ctx->src.len) {
 		UTIL_ERR("Reached end of source buffer while parsing run-length header\n");
@@ -71,15 +71,15 @@ unsigned int stunts_rle_decompress(stpk_Context *ctx)
 
 	// Generate escape code lookup table where the index is the escape code
 	// and the value is the escape code's positional property.
-	for (i = 0; i < STUNTS_RLE_ESCLOOKUP_LEN; i++) escLookup[i] = 0;
-	for (i = 0; i < (escLen & STUNTS_RLE_ESCLEN_MASK); i++) escLookup[esc[i]] = i + 1;
-	UTIL_VERBOSE_ARR(escLookup, STUNTS_RLE_ESCLOOKUP_LEN, "escLookup");
+	for (i = 0; i < DSI_RLE_ESCLOOKUP_LEN; i++) escLookup[i] = 0;
+	for (i = 0; i < (escLen & DSI_RLE_ESCLEN_MASK); i++) escLookup[esc[i]] = i + 1;
+	UTIL_VERBOSE_ARR(escLookup, DSI_RLE_ESCLOOKUP_LEN, "escLookup");
 
 	UTIL_NOVERBOSE("Run-length ");
 
 	// Decode sequence run as a separate pass.
-	if (!UTIL_GET_FLAG(escLen, STUNTS_RLE_ESCLEN_NOSEQ)) {
-		if (stunts_rle_decodeSeq(ctx, esc[STUNTS_RLE_ESCSEQ_POS])) {
+	if (!UTIL_GET_FLAG(escLen, DSI_RLE_ESCLEN_NOSEQ)) {
+		if (dsi_rle_decodeSeq(ctx, esc[DSI_RLE_ESCSEQ_POS])) {
 			return 1;
 		}
 
@@ -94,11 +94,11 @@ unsigned int stunts_rle_decompress(stpk_Context *ctx)
 		}
 	}
 
-	return stunts_rle_decodeOne(ctx, escLookup);
+	return dsi_rle_decodeOne(ctx, escLookup);
 }
 
 // Decode sequence runs.
-unsigned int stunts_rle_decodeSeq(stpk_Context *ctx, unsigned char esc)
+unsigned int dsi_rle_decodeSeq(stpk_Context *ctx, unsigned char esc)
 {
 	unsigned char cur;
 	unsigned int progress = 0, seqOffset, rep, i;
@@ -163,7 +163,7 @@ unsigned int stunts_rle_decodeSeq(stpk_Context *ctx, unsigned char esc)
 }
 
 // Decode single-byte runs.
-unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLookup)
+unsigned int dsi_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLookup)
 {
 	unsigned char cur;
 	unsigned int progress = 0, rep;
@@ -191,7 +191,7 @@ unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLoo
 					cur = ctx->src.data[ctx->src.offset + 1];
 					ctx->src.offset += 2;
 
-					if (stunts_rle_repeatByte(ctx, cur, rep)) {
+					if (dsi_rle_repeatByte(ctx, cur, rep)) {
 						return 1;
 					}
 
@@ -206,7 +206,7 @@ unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLoo
 					cur = ctx->src.data[ctx->src.offset + 2];
 					ctx->src.offset += 3;
 
-					if (stunts_rle_repeatByte(ctx, cur, rep)) {
+					if (dsi_rle_repeatByte(ctx, cur, rep)) {
 						return 1;
 					}
 
@@ -217,7 +217,7 @@ unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLoo
 					rep = escLookup[cur] - 1;
 					cur = ctx->src.data[ctx->src.offset++];
 
-					if (stunts_rle_repeatByte(ctx, cur, rep)) {
+					if (dsi_rle_repeatByte(ctx, cur, rep)) {
 						return 1;
 					}
 			}
@@ -243,7 +243,7 @@ unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLoo
 	return 0;
 }
 
-inline unsigned int stunts_rle_repeatByte(stpk_Context *ctx, unsigned char cur, unsigned int rep)
+inline unsigned int dsi_rle_repeatByte(stpk_Context *ctx, unsigned char cur, unsigned int rep)
 {
 	UTIL_VERBOSE2("%6d %6d    %02X  %02X\n", ctx->src.offset, ctx->dst.offset, rep, cur);
 

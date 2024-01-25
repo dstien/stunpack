@@ -17,10 +17,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include "stunts.h"
+#include "dsi.h"
 #include "util.h"
 
-#include "stunts_huff.h"
+#include "dsi_huff.h"
 
 inline unsigned char stpk_getHuffByte(stpk_Context *ctx);
 
@@ -28,32 +28,32 @@ inline unsigned char stpk_getHuffByte(stpk_Context *ctx);
 // - Type is Huffman
 // - Tree levels between 2 and 16
 // - No leaves at root node
-int stunts_huff_isValid(stpk_Buffer *buf, unsigned int offset)
+int dsi_huff_isValid(stpk_Buffer *buf, unsigned int offset)
 {
-	return buf->data[offset + 0] == STUNTS_TYPE_HUFF
-        && (buf->data[offset + 4] & STUNTS_HUFF_LEVELS_MASK) >= 2
-		&& (buf->data[offset + 4] & STUNTS_HUFF_LEVELS_MASK) <= STUNTS_HUFF_LEVELS_MAX
+	return buf->data[offset + 0] == DSI_TYPE_HUFF
+        && (buf->data[offset + 4] & DSI_HUFF_LEVELS_MASK) >= 2
+		&& (buf->data[offset + 4] & DSI_HUFF_LEVELS_MASK) <= DSI_HUFF_LEVELS_MAX
 		&& buf->data[offset + 5] == 0; // Leaves at root
 }
 
 // Decompress Huffman coded sub-file.
-unsigned int stunts_huff_decompress(stpk_Context *ctx)
+unsigned int dsi_huff_decompress(stpk_Context *ctx)
 {
-	unsigned char levels, leafNodesPerLevel[STUNTS_HUFF_LEVELS_MAX], alphabet[STUNTS_HUFF_ALPH_LEN], symbols[STUNTS_HUFF_PREFIX_LEN], widths[STUNTS_HUFF_PREFIX_LEN];
-	short codeOffsets[STUNTS_HUFF_LEVELS_MAX];
-	unsigned short totalCodes[STUNTS_HUFF_LEVELS_MAX];
+	unsigned char levels, leafNodesPerLevel[DSI_HUFF_LEVELS_MAX], alphabet[DSI_HUFF_ALPH_LEN], symbols[DSI_HUFF_PREFIX_LEN], widths[DSI_HUFF_PREFIX_LEN];
+	short codeOffsets[DSI_HUFF_LEVELS_MAX];
+	unsigned short totalCodes[DSI_HUFF_LEVELS_MAX];
 	unsigned int i, alphLen;
 	int delta;
 
 	levels = ctx->src.data[ctx->src.offset++];
-	delta = UTIL_GET_FLAG(levels, STUNTS_HUFF_LEVELS_DELTA);
-	levels &= STUNTS_HUFF_LEVELS_MASK;
+	delta = UTIL_GET_FLAG(levels, DSI_HUFF_LEVELS_DELTA);
+	levels &= DSI_HUFF_LEVELS_MASK;
 
 	UTIL_VERBOSE1("  %-10s %d\n", "levels", levels);
 	UTIL_VERBOSE1("  %-10s %d\n\n", "delta", delta);
 
-	if (levels > STUNTS_HUFF_LEVELS_MAX) {
-		UTIL_ERR("Huffman tree levels greater than %d, got %d\n", STUNTS_HUFF_LEVELS_MAX, levels);
+	if (levels > DSI_HUFF_LEVELS_MAX) {
+		UTIL_ERR("Huffman tree levels greater than %d, got %d\n", DSI_HUFF_LEVELS_MAX, levels);
 		return 1;
 	}
 
@@ -61,10 +61,10 @@ unsigned int stunts_huff_decompress(stpk_Context *ctx)
 		leafNodesPerLevel[i] = ctx->src.data[ctx->src.offset++];
 	}
 
-	alphLen = stunts_huff_genOffsets(ctx, levels, leafNodesPerLevel, codeOffsets, totalCodes);
+	alphLen = dsi_huff_genOffsets(ctx, levels, leafNodesPerLevel, codeOffsets, totalCodes);
 
-	if (alphLen > STUNTS_HUFF_ALPH_LEN) {
-		UTIL_ERR("Alphabet longer than than %d, got %d\n", STUNTS_HUFF_ALPH_LEN, alphLen);
+	if (alphLen > DSI_HUFF_ALPH_LEN) {
+		UTIL_ERR("Alphabet longer than than %d, got %d\n", DSI_HUFF_ALPH_LEN, alphLen);
 		return 1;
 	}
 
@@ -77,13 +77,13 @@ unsigned int stunts_huff_decompress(stpk_Context *ctx)
 		return 1;
 	}
 
-	stunts_huff_genPrefix(ctx, levels, leafNodesPerLevel, alphabet, symbols, widths);
+	dsi_huff_genPrefix(ctx, levels, leafNodesPerLevel, alphabet, symbols, widths);
 
-	return stunts_huff_decode(ctx, alphabet, symbols, widths, codeOffsets, totalCodes, delta);
+	return dsi_huff_decode(ctx, alphabet, symbols, widths, codeOffsets, totalCodes, delta);
 }
 
 // Generate offset table for translating Huffman codes wider than 8 bits to alphabet indices.
-unsigned int stunts_huff_genOffsets(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, short *codeOffsets, unsigned short *totalCodes)
+unsigned int dsi_huff_genOffsets(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, short *codeOffsets, unsigned short *totalCodes)
 {
 	unsigned int level, codes = 0, alphLen = 0;
 
@@ -104,10 +104,10 @@ unsigned int stunts_huff_genOffsets(stpk_Context *ctx, unsigned int levels, cons
 }
 
 // Generate prefix table for direct lookup of Huffman codes up to 8 bits wide.
-void stunts_huff_genPrefix(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, const unsigned char *alphabet, unsigned char *symbols, unsigned char *widths)
+void dsi_huff_genPrefix(stpk_Context *ctx, unsigned int levels, const unsigned char *leafNodesPerLevel, const unsigned char *alphabet, unsigned char *symbols, unsigned char *widths)
 {
-	unsigned int prefix, alphabetIndex, width = 1, maxWidth = UTIL_MIN(levels, STUNTS_HUFF_PREFIX_WIDTH);
-	unsigned char leafNodes, totalNodes = STUNTS_HUFF_PREFIX_MSB, remainingNodes;
+	unsigned int prefix, alphabetIndex, width = 1, maxWidth = UTIL_MIN(levels, DSI_HUFF_PREFIX_WIDTH);
+	unsigned char leafNodes, totalNodes = DSI_HUFF_PREFIX_MSB, remainingNodes;
 
 	// Fill all prefixes with data from last leaf node.
 	for (prefix = 0, alphabetIndex = 0; width <= maxWidth; width++, totalNodes >>= 1) {
@@ -121,12 +121,12 @@ void stunts_huff_genPrefix(stpk_Context *ctx, unsigned int levels, const unsigne
 	UTIL_VERBOSE_ARR(symbols, prefix, "symbols");
 
 	// Pad with escape value for codes wider than 8 bits.
-	for (; prefix < STUNTS_HUFF_ALPH_LEN; prefix++) widths[prefix] = STUNTS_HUFF_WIDTH_ESC;
+	for (; prefix < DSI_HUFF_ALPH_LEN; prefix++) widths[prefix] = DSI_HUFF_WIDTH_ESC;
 	UTIL_VERBOSE_ARR(widths, prefix, "widths");
 }
 
 // Decode Huffman codes.
-unsigned int stunts_huff_decode(stpk_Context *ctx, const unsigned char *alphabet, const unsigned char *symbols, const unsigned char *widths, const short *codeOffsets, const unsigned short *totalCodes, int delta)
+unsigned int dsi_huff_decode(stpk_Context *ctx, const unsigned char *alphabet, const unsigned char *symbols, const unsigned char *widths, const short *codeOffsets, const unsigned short *totalCodes, int delta)
 {
 	unsigned char readWidth = 8, curWidth = 0, curByte, code, level, curOut = 0;
 	unsigned short curWord = 0;
@@ -148,31 +148,31 @@ unsigned int stunts_huff_decode(stpk_Context *ctx, const unsigned char *alphabet
 		curWidth = widths[code];
 
 		// If code is wider than 8 bits, read more bits and decode with offset table.
-		if (curWidth > STUNTS_HUFF_PREFIX_WIDTH) {
-			if (curWidth != STUNTS_HUFF_WIDTH_ESC) {
-				UTIL_ERR("Invalid escape value. curWidth != %02X, got %02X\n", STUNTS_HUFF_WIDTH_ESC, curWidth);
+		if (curWidth > DSI_HUFF_PREFIX_WIDTH) {
+			if (curWidth != DSI_HUFF_WIDTH_ESC) {
+				UTIL_ERR("Invalid escape value. curWidth != %02X, got %02X\n", DSI_HUFF_WIDTH_ESC, curWidth);
 				return STPK_RET_ERR;
 			}
 
 			curByte = (curWord & 0x00FF);
-			curWord >>= STUNTS_HUFF_PREFIX_WIDTH;
+			curWord >>= DSI_HUFF_PREFIX_WIDTH;
 			UTIL_VERBOSE_HUFF("Escaping to offset table");
 
 			// Read bit by bit until a level is found, starting at the max width of the prefix table.
-			for (level = STUNTS_HUFF_PREFIX_WIDTH; 1; level++) {
+			for (level = DSI_HUFF_PREFIX_WIDTH; 1; level++) {
 				if (!readWidth) {
 					curByte = stpk_getHuffByte(ctx);
 					readWidth = 8;
 					UTIL_VERBOSE_HUFF("Read %02X", ctx->src.data[ctx->src.offset - 1]);
 				}
 
-				curWord = (curWord << 1) + UTIL_GET_FLAG(curByte, STUNTS_HUFF_PREFIX_MSB);
+				curWord = (curWord << 1) + UTIL_GET_FLAG(curByte, DSI_HUFF_PREFIX_MSB);
 				curByte <<= 1;
 				readWidth--;
 				UTIL_VERBOSE_HUFF("level = %d", level);
 
-				if (level >= STUNTS_HUFF_LEVELS_MAX) {
-					UTIL_ERR("Offset table out of bounds (%d >= %d)\n", level, STUNTS_HUFF_LEVELS_MAX);
+				if (level >= DSI_HUFF_LEVELS_MAX) {
+					UTIL_ERR("Offset table out of bounds (%d >= %d)\n", level, DSI_HUFF_LEVELS_MAX);
 					return STPK_RET_ERR;
 				}
 
@@ -180,7 +180,7 @@ unsigned int stunts_huff_decode(stpk_Context *ctx, const unsigned char *alphabet
 					curWord += codeOffsets[level];
 
 					if (curWord > 0xFF) {
-						UTIL_ERR("Alphabet index out of bounds (%04X > %04X)\n", curWord, STUNTS_HUFF_ALPH_LEN);
+						UTIL_ERR("Alphabet index out of bounds (%04X > %04X)\n", curWord, DSI_HUFF_ALPH_LEN);
 						return STPK_RET_ERR;
 					}
 
@@ -266,7 +266,7 @@ inline unsigned char stpk_getHuffByte(stpk_Context *ctx)
 	};
 
 	unsigned char byte = ctx->src.data[ctx->src.offset++];
-	if (ctx->format.stunts.version == STPK_FMT_STUNTS_VER_1_0) {
+	if (ctx->format.dsi.version == STPK_FMT_DSI_VER_1) {
 		byte = reverseBits[byte];
 	}
 	return byte;

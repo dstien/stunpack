@@ -17,20 +17,20 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef STPK_LIB_STUNTS_RLE_H
-#define STPK_LIB_STUNTS_RLE_H
+#ifndef STPK_LIB_DSI_RLE_H
+#define STPK_LIB_DSI_RLE_H
 
 #include <stunpack.h>
 
-#define STUNTS_RLE_ESCLEN_MASK   0x7F
-#define STUNTS_RLE_ESCLEN_MAX    0x0A
-#define STUNTS_RLE_ESCLEN_NOSEQ  0x80
-#define STUNTS_RLE_ESCLOOKUP_LEN 0x100
-#define STUNTS_RLE_ESCSEQ_POS    0x01
+#define DSI_RLE_ESCLEN_MASK   0x7F
+#define DSI_RLE_ESCLEN_MAX    0x0A
+#define DSI_RLE_ESCLEN_NOSEQ  0x80
+#define DSI_RLE_ESCLOOKUP_LEN 0x100
+#define DSI_RLE_ESCSEQ_POS    0x01
 
-int stunts_rle_isValid(stpk_Buffer *buf, unsigned int offset);
-unsigned int stunts_rle_decompress(stpk_Context *ctx);
-unsigned int stunts_rle_decodeSeq(stpk_Context *ctx, unsigned char esc);
-unsigned int stunts_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLookup);
+int dsi_rle_isValid(stpk_Buffer *buf, unsigned int offset);
+unsigned int dsi_rle_decompress(stpk_Context *ctx);
+unsigned int dsi_rle_decodeSeq(stpk_Context *ctx, unsigned char esc);
+unsigned int dsi_rle_decodeOne(stpk_Context *ctx, const unsigned char *escLookup);
 
 #endif

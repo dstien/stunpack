@@ -34,33 +34,37 @@
 typedef enum {
 	// Automatic format detection when decompressing.
 	STPK_FMT_AUTO,
-	// Custom compression format used by the PC versions of Stunts/4-D Sports Driving.
-	STPK_FMT_STUNTS,
-	// EA compression library by Frank Barchard used by 4-D Sports Driving for Amiga and 4-D Driving for PC98.
-	STPK_FMT_BARCHARD,
-	// Amiga RPck archiver format used for 3-d shapes in 4-D Sports Driving for Amiga.
+	// Custom compression format used by the MS DOS versions of many DSI games.
+	STPK_FMT_DSI,
+	// Custom compression format by EA Canada used by many EA games in the 90's and early 2000's.
+	STPK_FMT_EAC,
+	// Custom compression format used by the Amiga ports of some DSI games.
 	STPK_FMT_RPCK,
 	STPK_FMT_UNKNOWN
 } stpk_FmtType;
 
 typedef enum {
-	STPK_FMT_STUNTS_VER_AUTO,
-	STPK_FMT_STUNTS_VER_1_0,
-	STPK_FMT_STUNTS_VER_1_1
-} stpk_FmtStuntsVer;
+	// Attempt automatic detection by first trying version 2 and falling back
+	// to version 1 if it fails.
+	STPK_FMT_DSI_VER_AUTO,
+	// Big-endian Huffman codes. Used by BB/MS Stunts 1.1.
+	STPK_FMT_DSI_VER_1,
+	// Little-endian Huffman codes. Used by BB Stunts 1.0 and earlier games.
+	STPK_FMT_DSI_VER_2
+} stpk_FmtDsiVer;
 
 //typedef enum {
-//	STPK_FMT_STUNTS_RLE,
-//	STPK_FMT_STUNTS_HUFF
-//} stpk_FmtStuntsMethod;
+//	STPK_FMT_DSI_RLE  = 1,
+//	STPK_FMT_DSI_HUFF = 2
+//} stpk_FmtDsiMethod;
 
 typedef struct {
-	stpk_FmtStuntsVer version;
+	stpk_FmtDsiVer version;
 	int maxPasses;
-} stpk_FmtStunts;
+} stpk_FmtDsi;
 
 //typedef struct {
-//} stpk_FmtBarchard;
+//} stpk_FmtEac;
 
 //typedef struct {
 //} stpk_FmtRpck;
@@ -68,9 +72,9 @@ typedef struct {
 typedef struct {
 	stpk_FmtType type;
 	union {
-		stpk_FmtStunts   stunts;
-		//stpk_FmtBarchard barchard;
-		//stpk_FmtRpck     rpck;
+		stpk_FmtDsi  dsi;
+		//stpk_FmtEac  eac;
+		//stpk_FmtRpck rpck;
 	};
 } stpk_Format;
 
@@ -107,6 +111,7 @@ unsigned int stpk_decompress(stpk_Context *ctx);
 
 stpk_FmtType stpk_getFmtType(stpk_Context *ctx);
 
-const char *stpk_fmtStuntsVerStr(stpk_FmtStuntsVer version);
+const char *stpk_fmtTypeStr(stpk_FmtType type);
+const char *stpk_fmtDsiVerStr(stpk_FmtDsiVer version);
 
 #endif

@@ -19,8 +19,9 @@
 
 #include <stunpack.h>
 
+#include "dsi.h"
 #include "rpck.h"
-#include "stunts.h"
+#include "util.h"
 
 stpk_Context stpk_init(stpk_Format format, int verbosity, stpk_LogCallback logCallback, stpk_AllocCallback allocCallback, stpk_DeallocCallback deallocCallback)
 {
@@ -66,8 +67,8 @@ unsigned int stpk_decompress(stpk_Context *ctx)
 	switch (stpk_getFmtType(ctx)) {
 		case STPK_FMT_RPCK:
 			return rpck_decompress(ctx);
-		case STPK_FMT_STUNTS:
-			return stunts_decompress(ctx);
+		case STPK_FMT_DSI:
+			return dsi_decompress(ctx);
 		default:
 			return STPK_RET_ERR_UNKNOWN_FMT;
 	}
@@ -80,14 +81,14 @@ stpk_FmtType stpk_getFmtType(stpk_Context *ctx)
 		if (rpck_isValid(ctx)) {
 			ctx->format.type = STPK_FMT_RPCK;
 		}
-		// TODO: Check other header details, cleanup, move to barchard.c.
+		// TODO: Check other header details, cleanup, move to eac.c.
 		else if (ctx->src.data[1] == 0xFB) {
-			ctx->format.type = STPK_FMT_BARCHARD;
+			ctx->format.type = STPK_FMT_EAC;
 		}
-		else if (stunts_isValid(ctx)) {
-			ctx->format.type = STPK_FMT_STUNTS;
-			ctx->format.stunts.version = STPK_FMT_STUNTS_VER_AUTO;
-			ctx->format.stunts.maxPasses = 0;
+		else if (dsi_isValid(ctx)) {
+			ctx->format.type = STPK_FMT_DSI;
+			ctx->format.dsi.version = STPK_FMT_DSI_VER_AUTO;
+			ctx->format.dsi.maxPasses = 0;
 		}
 		else {
 			ctx->format.type = STPK_FMT_UNKNOWN;
@@ -97,16 +98,32 @@ stpk_FmtType stpk_getFmtType(stpk_Context *ctx)
 	return ctx->format.type;
 }
 
-const char *stpk_fmtStuntsVerStr(stpk_FmtStuntsVer version)
+const char *stpk_fmtTypeStr(stpk_FmtType type)
+{
+	switch (type) {
+		case STPK_FMT_AUTO:
+			return "auto";
+		case STPK_FMT_DSI:
+			return "dsi";
+		case STPK_FMT_EAC:
+			return "eac";
+		case STPK_FMT_RPCK:
+			return "rpck";
+		default:
+			return "unknown";
+	}
+}
+
+const char *stpk_fmtDsiVerStr(stpk_FmtDsiVer version)
 {
 	switch (version) {
-		case STPK_FMT_STUNTS_VER_AUTO:
+		case STPK_FMT_DSI_VER_AUTO:
 			return "auto";
-		case STPK_FMT_STUNTS_VER_1_0:
-			return "stunts1.0";
-		case STPK_FMT_STUNTS_VER_1_1:
-			return "stunts1.1";
+		case STPK_FMT_DSI_VER_1:
+			return "dsi1";
+		case STPK_FMT_DSI_VER_2:
+			return "dsi2";
 		default:
-			return "Unknown";
+			return "unknown";
 	}
 }
